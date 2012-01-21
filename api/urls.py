@@ -2,5 +2,6 @@
 from django.conf.urls.defaults import patterns, include, url
 
 urlpatterns = patterns('',
-	url("$^", "api.views.index"),
+	url("^$", "api.views.index"),
+	url("^parsegir/$", "api.views.parse"),
 	)

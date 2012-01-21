@@ -42,5 +42,3 @@ class Constant(Symbol):
   type_symbol = models.ForeignKey(Symbol, related_name="tpye_symbol")
   c_type = models.CharField(max_length=500)
   value = models.CharField(max_length=500)
-
-# Create your models here.
