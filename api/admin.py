@@ -12,4 +12,3 @@ admin.site.register(Bitfield)
 admin.site.register(BitfieldValue)
 admin.site.register(BuiltIn)
 admin.site.register(Constant)
-

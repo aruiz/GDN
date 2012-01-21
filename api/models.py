@@ -2,7 +2,8 @@
 from django.db import models
 
 class Symbol(models.Model):
-  name = models.CharField(max_length=500)
+  name   = models.CharField(max_length=500, unique=True)
+  c_type = models.CharField(max_length=500)
   namespace = models.CharField(max_length=500)
   doc = models.TextField (null=True)
 
@@ -36,9 +37,8 @@ class BitfieldValue(Symbol):
   value = models.IntegerField()
 
 class BuiltIn(Symbol):
-  c_type = models.CharField(max_length=500)
-  
+  pass
+
 class Constant(Symbol):
   type_symbol = models.ForeignKey(Symbol, related_name="tpye_symbol")
-  c_type = models.CharField(max_length=500)
   value = models.CharField(max_length=500)
