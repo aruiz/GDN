@@ -4,7 +4,10 @@ from django.contrib import admin
 class SymbolAdmin(admin.ModelAdmin):
   list_display = ('c_type', 'name', 'namespaced_name', 'namespace')
 
-admin.site.register(Delegate, SymbolAdmin)
+class BuiltinAdmin(admin.ModelAdmin):
+  list_display = ('c_type', 'name')
+
+admin.site.register(Callable, SymbolAdmin)
 admin.site.register(Method, SymbolAdmin)
 admin.site.register(Interface, SymbolAdmin)
 admin.site.register(Enum)

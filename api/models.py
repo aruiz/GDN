@@ -1,8 +1,10 @@
 # vim: tabstop=4 noexpandtab shiftwidth=4 softtabstop=4
 from django.db import models
 
-class Symbol(models.Model):
+class Type(models.Model):
   name   = models.CharField(max_length=500)
+
+class Symbol(Type):
   c_type = models.CharField(max_length=500, unique=True)
   namespaced_name = models.CharField(max_length=500, unique=True)
   namespace = models.CharField(max_length=500)
@@ -13,7 +15,7 @@ class Class(Symbol):
   implements = models.ManyToManyField('Interface', null=True, blank=True)
   methods = models.ManyToManyField('Method', null=True, blank=True)
 
-class Delegate(Symbol):
+class Callable(Symbol):
   pass
 
 class Method(Symbol):
@@ -37,7 +39,8 @@ class BitfieldValue(Symbol):
   bitfield = models.ForeignKey(Bitfield)
   value = models.IntegerField()
 
-class BuiltIn(Symbol):
+class BuiltIn(Type):
+  c_type = models.CharField(max_length=500)
   pass
 
 class Constant(Symbol):
