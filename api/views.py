@@ -3,6 +3,12 @@ from gnome_developer_network.api.models import BuiltIn, Class
 from django.http import HttpResponse
 import giraffe.ast
 
+def _store_class (child, parent):
+	obj = Class.objects.create (name=child.name, c_type=child.c_type, parent=parent)
+	for sc in child.subclasses:
+		_store_class (sc, obj)
+
+
 def index(request):
 	return HttpResponse("Hello world")
 
@@ -16,12 +22,25 @@ def parse(request):
 	repo = giraffe.ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
 	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
+	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
 	repo.link()
 
-	output = ""
+	gob = None
 	for ns in repo.namespaces:
-		output += "<h1>%s</h1>" % ns.name 
-		for cl in ns.classes:
-			output += ns.name + "." + cl.name + " <br/>"
+		if ns.name == "GObject":
+			gob = ns
 
-	return HttpResponse(output)
+	root = None
+	if gob:
+		for cl in gob.classes:
+			if cl.name == "Object":
+				root = cl
+
+	if root == None:
+		return HttpResponse("boo")
+
+	root_db = Class.objects.create (name=root.name, c_type=root.c_type)
+	for sc in root.subclasses:
+		_store_class (sc, root_db)
+		
+	return HttpResponse("the end")
