@@ -1,23 +1,39 @@
 # vim: tabstop=4 noexpandtab shiftwidth=4 softtabstop=4
 from gnome_developer_network.api.models import BuiltIn, Class
 from django.http import HttpResponse
+from django.db   import IntegrityError
 import giraffe.ast
 
 def _store_class (child, parent):
-	obj = Class.objects.create (name=child.name, c_type=child.c_type, parent=parent)
-	for sc in child.subclasses:
-		_store_class (sc, obj)
 
+	try:
+		parent_db = Class.objects.get(c_type=parent.c_type)
+	except:
+		parent_db = None
+
+	obj = Class.objects.create(name=child.name,
+							   c_type=child.c_type,
+							   parent=parent_db,
+							   namespace=child.namespace.name,
+							   namespaced_name=child.namespaced_name)
+
+	for sc in child.subclasses:
+		_store_class (sc, child)
+
+def _store_builtins (builtins):
+	for bi in builtins:
+		try:
+			bidb = BuiltIn.objects.create (name=bi['name'], c_type=bi['c_type'])
+		except:
+			pass
 
 def index(request):
 	return HttpResponse("Hello world")
 
 def parse(request):
-	for bi in giraffe.ast.BUILTINS:
-		try:
-			bidb = BuiltIn.objects.create (name=bi['name'], c_type=bi['c_type'])
-		except:
-			pass
+	BuiltIn.objects.all().delete()
+	_store_builtins (giraffe.ast.BUILTINS)
+
 
 	repo = giraffe.ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
@@ -37,10 +53,9 @@ def parse(request):
 				root = cl
 
 	if root == None:
-		return HttpResponse("boo")
+		return HttpResponse("<h1>No GObject.Object found</h1>")
 
-	root_db = Class.objects.create (name=root.name, c_type=root.c_type)
-	for sc in root.subclasses:
-		_store_class (sc, root_db)
-		
-	return HttpResponse("the end")
+	Class.objects.all().delete()
+	_store_class (root, None)
+
+	return HttpResponse("GIR to SQL transfusion completed")
