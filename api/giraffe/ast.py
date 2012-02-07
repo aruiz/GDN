@@ -6,7 +6,7 @@ import logging
 from itertools import chain
 from xml.etree import ElementTree 
 from xml.etree.ElementTree import XML
-from giraffe.utils import camelcase2lower
+from utils import camelcase2lower
 
 class ETreeNamespace:
 	
