@@ -4,8 +4,8 @@ import gnome_developer_network.api.giraffe.ast as ast
 
 """ We need to replicate each class of the AST's properties, we use this dict to automate the process. """
 PROPERTY_MAPPINS = {
-	ast.Namespace:   ('name', 'doc', 'repository', 'symbol_prefix', 'identifier_prefixes'),
-	ast.Node:        ('name', 'namespaced_name', 'namespace', 'doc'),
+	ast.Namespace:   ('name', 'doc', 'symbol_prefix', 'identifier_prefixes'),
+	ast.Node:        ('name', 'namespaced_name', 'doc'),
 	ast.Parameter:   ('is_out',),
 	ast.Type:        ('is_array', 'c_type'),
 	ast.Array:       ('child_type',),
@@ -21,18 +21,14 @@ PROPERTY_MAPPINS = {
 class Namespace(models.Model): 
 	name                = models.CharField(max_length=500)
 	doc                 = models.TextField (null=True, blank=True)
-	repository          = models.ForeignKey('Repository', related_name='ns_repo')
 	symbol_prefix       = models.CharField(max_length=500)
 	identifier_prefixes = models.CharField(max_length=500)
 
 class Node(models.Model):
 	name            = models.CharField(max_length=500)
 	namespaced_name = models.CharField(max_length=500, unique=True)
-	namespace       = models.ForeignKey('Namespace')
+	namespace       = models.ForeignKey('Namespace', null=True, blank=True)
 	doc             = models.TextField (null=True, blank=True)
-
-class Repository(Node):
-	pass
 
 class Value(Node):
 	pass
