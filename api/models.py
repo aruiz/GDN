@@ -24,11 +24,17 @@ class Namespace(models.Model):
 	symbol_prefix       = models.CharField(max_length=500)
 	identifier_prefixes = models.CharField(max_length=500)
 
+	def __unicode__(self):
+		return self.name
+
 class Node(models.Model):
 	name            = models.CharField(max_length=500)
 	namespaced_name = models.CharField(max_length=500)
 	namespace       = models.ForeignKey('Namespace', null=True, blank=True)
 	doc             = models.TextField (null=True, blank=True)
+
+	def __unicode__(self):
+		return self.name
 
 class TypedNode(models.Model):
 	name       = models.CharField(max_length=500)
@@ -37,15 +43,24 @@ class TypedNode(models.Model):
 	is_pointer = models.BooleanField(default=False)
 	is_array   = models.BooleanField(default=False)
 
+	def __unicode__(self):
+		return self.name
+
 class Value(Node):
 	pass
 
 class Parameter(TypedNode):
-	is_out = models.BooleanField(default=False)
+	is_out       = models.BooleanField(default=False)
+	position     = models.IntegerField()
+	callable_obj = models.ForeignKey('Callable')
 
 #TODO: How come a return value has "is_out" wtf?
 class ReturnValue(Parameter):
-	pass
+	def __unicode__(self):
+		c_id = None
+		if self.callable_obj != None:
+			c_id = self.callable_obj.c_identifier
+		return "%s(...) -> %s" % (c_id, self.tn_type)
 
 class Type(Node):
 	is_array = models.BooleanField(default=False)
@@ -61,8 +76,6 @@ class Array(Type):
 	child_type = models.ManyToManyField('Type', related_name='array_child_type')
 	
 class Callable(Node):
-	parameters = models.ManyToManyField('Parameter')
-	return_value = models.ForeignKey('ReturnValue', related_name='callable_return_value')
 	c_identifier = models.CharField(max_length=500, unique=True)
 
 class Function(Callable):

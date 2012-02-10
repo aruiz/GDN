@@ -13,6 +13,10 @@ admin.site.register(Callable,  SymbolAdmin)
 admin.site.register(Function,  SymbolAdmin)
 admin.site.register(Type,  SymbolAdmin)
 
+admin.site.register(TypedNode,  NsAdmin)
+admin.site.register(Parameter,  NsAdmin)
+admin.site.register(ReturnValue,  NsAdmin)
+
 #admin.site.register(Callable, SymbolAdmin)
 #admin.site.register(Method, SymbolAdmin)
 #admin.site.register(Interface, SymbolAdmin)

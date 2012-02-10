@@ -43,38 +43,45 @@ def _store_type (ast_type):
 	except ObjectDoesNotExist:
 		db_type = models.Type()
 		_store_props (db_type, ast_type, (ast.Node, ast.Type))
-		print db_type.namespace
 		db_type.save()
 
 	return db_type
-	
 
-def _store_param (param):
+def _store_param (param, position, callable_obj):
 	db_param = models.Parameter()
 	db_param.tn_type = _store_type (param.get_type())
+	db_param.position = position
+	db_param.callable_obj = callable_obj
 	_store_props (db_param, param, (ast.TypedNode, ast.Parameter))
 	db_param.save()
 
 	return db_param
 
-def _store_return_value (rvalue):
+def _store_return_value (rvalue, callable_obj):
 	db_rvalue = models.ReturnValue()
 	_store_props (db_rvalue, rvalue, (ast.TypedNode, ast.Parameter))
 	db_rvalue.tn_type = _store_type (rvalue.get_type())
+	db_rvalue.position = 0
+	db_rvalue.callable_obj = callable_obj
 	db_rvalue.save()
 
 	return db_rvalue
 
 def _store_function (fn):
+	print fn.name
 	try:
-		db_fn = models.Function.objects.get(namespaced_name = fn.namespaced_name)
+		db_fn = models.Function.objects.get(c_identifier = fn.c_identifier)
 	except ObjectDoesNotExist:
-		db_rvalue = _store_return_value (fn.return_value)
-		db_params = [_store_param(param) for param in fn.parameters]
+		db_fn = models.Function(name = fn.name)
+		db_fn.save()
 
-		db_fn = models.Function(namespaced_name = fn.namespaced_name)
+		db_params = []
+		pos = 0
+		for param in fn.parameters:
+			db_params.append(_store_param(param, pos, db_fn))
+			pos += 1
+
 		_store_props (db_fn, fn, (ast.Callable, ast.Node))
-		db_fn.return_value = db_rvalue
 		db_fn.save()
 
 		return db_fn
@@ -85,8 +92,8 @@ def _store_function (fn):
 def parse(request):
 	repo = ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
-	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
-	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
+#	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
+#	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
 	repo.link()
 
 	for ns in repo.namespaces:
