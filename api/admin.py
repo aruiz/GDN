@@ -9,6 +9,9 @@ class NsAdmin(admin.ModelAdmin):
 
 admin.site.register(Node,       SymbolAdmin)
 admin.site.register(Namespace,  NsAdmin)
+admin.site.register(Callable,  SymbolAdmin)
+admin.site.register(Function,  SymbolAdmin)
+admin.site.register(Type,  SymbolAdmin)
 
 #admin.site.register(Callable, SymbolAdmin)
 #admin.site.register(Method, SymbolAdmin)

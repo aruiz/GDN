@@ -9,11 +9,11 @@ PROPERTY_MAPPINS = {
 	ast.Parameter:   ('is_out',),
 	ast.Type:        ('is_array', 'c_type'),
 	ast.Array:       ('child_type',),
-	ast.Callable:    ('parameters', 'return_value', 'c_identifier'),
+	ast.Callable:    ('c_identifier',),
 	ast.Method:      ('virtual', 'static'),
 	ast.Enumeration: ('members',),
 	ast.Record:      ('disguised', 'fields', 'callbacks', 'methods'),
-	ast.TypedNode:   ('is_pointer',),
+	ast.TypedNode:   ('name', 'doc', 'is_pointer', 'is_array'),
 	ast.Property:    ('writable', 'construct_only'),
 	ast.Class:       ('constructors', 'properties', 'signals', 'parent_class', 'interfaces', 'is_abstract')
 }
@@ -26,14 +26,21 @@ class Namespace(models.Model):
 
 class Node(models.Model):
 	name            = models.CharField(max_length=500)
-	namespaced_name = models.CharField(max_length=500, unique=True)
+	namespaced_name = models.CharField(max_length=500)
 	namespace       = models.ForeignKey('Namespace', null=True, blank=True)
 	doc             = models.TextField (null=True, blank=True)
+
+class TypedNode(models.Model):
+	name       = models.CharField(max_length=500)
+	doc        = models.TextField (null=True, blank=True)
+	tn_type    = models.ForeignKey('Type')
+	is_pointer = models.BooleanField(default=False)
+	is_array   = models.BooleanField(default=False)
 
 class Value(Node):
 	pass
 
-class Parameter(Node):
+class Parameter(TypedNode):
 	is_out = models.BooleanField(default=False)
 
 #TODO: How come a return value has "is_out" wtf?
@@ -42,7 +49,7 @@ class ReturnValue(Parameter):
 
 class Type(Node):
 	is_array = models.BooleanField(default=False)
-	c_type   = models.CharField(max_length=500)
+	c_type   = models.CharField(max_length=500, unique=True)
 
 class BaseType(Type):
 	pass
@@ -55,8 +62,8 @@ class Array(Type):
 	
 class Callable(Node):
 	parameters = models.ManyToManyField('Parameter')
-	return_value = models.ManyToManyField('ReturnValue', related_name='callable_return_value')
-	c_identifier = models.CharField(max_length=500)
+	return_value = models.ForeignKey('ReturnValue', related_name='callable_return_value')
+	c_identifier = models.CharField(max_length=500, unique=True)
 
 class Function(Callable):
 	pass
@@ -85,9 +92,6 @@ class Record(Type):
 	fields    = models.ManyToManyField('Field')
 	callbacks = models.ManyToManyField('Callback')
 	methods   = models.ManyToManyField('Method')
-
-class TypedNode(Node):
-	is_pointer = models.BooleanField(default=False)
 
 class Field (Node):
 	pass

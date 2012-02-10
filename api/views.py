@@ -1,4 +1,5 @@
 # vim: tabstop=4 noexpandtab shiftwidth=4 softtabstop=4
+from django.core.exceptions import ObjectDoesNotExist
 import gnome_developer_network.api.models as models
 from django.http import HttpResponse
 from django.db   import IntegrityError
@@ -17,6 +18,13 @@ def index(request):
 
 	return HttpResponse(page)
 
+def _store_props(db_obj, ast_obj, ast_classes):
+	for ast_class in ast_classes:
+		for prop in models.PROPERTY_MAPPINS[ast_class]:
+			if getattr(ast_obj, prop) == None:
+				continue
+			setattr(db_obj, prop, getattr(ast_obj, prop))
+
 def _store_namespace (ns):
 	try:
 		db_ns = models.Namespace.objects.get(name = ns.name)
@@ -24,37 +32,56 @@ def _store_namespace (ns):
 	except:
 		db_ns = models.Namespace()
 
-	for prop in models.PROPERTY_MAPPINS[ast.Namespace]:
-		setattr(db_ns, prop, getattr(ns, prop))
+	_store_props (db_ns, ns, (ast.Namespace,))
 	db_ns.save()
 
-
-def _store_class (cl):
-	parent = None
-	try:
-		parent = models.Class.objects.get(namespaced_name = cl.parent_class.namespaced_name)
-	except:
-		if cl.parent_class:
-			parent = _store_class(cl.parent_class)
+	return db_ns
 	
+def _store_type (ast_type):
 	try:
-		db_class = models.Class.objects.get(namespaced_name = cl.namespaced_name)
-		return db_class
-	#TODO: Catch the right exception for this
-	except:
-		pass
+		db_type = models.Type.objects.get(c_type = ast_type.c_type)
+	except ObjectDoesNotExist:
+		db_type = models.Type()
+		_store_props (db_type, ast_type, (ast.Node, ast.Type))
+		print db_type.namespace
+		db_type.save()
 
-	db_class = models.Class()
-	db_class.name = cl.name
-	db_class.namespace = cl.namespace
-	db_class.parent_class = parent
-	db_class.save()
-
-	for subcl in cl.subclasses:
-		_store_class (subcl)
-
-	return db_class
+	return db_type
 	
+
+def _store_param (param):
+	db_param = models.Parameter()
+	db_param.tn_type = _store_type (param.get_type())
+	_store_props (db_param, param, (ast.TypedNode, ast.Parameter))
+	db_param.save()
+
+	return db_param
+
+def _store_return_value (rvalue):
+	db_rvalue = models.ReturnValue()
+	_store_props (db_rvalue, rvalue, (ast.TypedNode, ast.Parameter))
+	db_rvalue.tn_type = _store_type (rvalue.get_type())
+	db_rvalue.save()
+
+	return db_rvalue
+
+def _store_function (fn):
+	try:
+		db_fn = models.Function.objects.get(namespaced_name = fn.namespaced_name)
+	except ObjectDoesNotExist:
+		db_rvalue = _store_return_value (fn.return_value)
+		db_params = [_store_param(param) for param in fn.parameters]
+
+		db_fn = models.Function(namespaced_name = fn.namespaced_name)
+		_store_props (db_fn, fn, (ast.Callable, ast.Node))
+		db_fn.return_value = db_rvalue
+		db_fn.save()
+
+		return db_fn
+
+	#TODO: Update
+	return db_fn
+
 def parse(request):
 	repo = ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
@@ -63,9 +90,9 @@ def parse(request):
 	repo.link()
 
 	for ns in repo.namespaces:
-		_store_namespace(ns)
-#		for cl in ns.classes:
-#			_store_class(cl)
+		db_ns = _store_namespace (ns)
+		for fn in ns.functions:
+			_store_function (fn)
 #
 #	if root_class == None:
 #		return HttpResponse("<h1>No GObject.Object found</h1>")
