@@ -8,14 +8,14 @@ PROPERTY_MAPPINS = {
 	ast.Node:        ('name', 'namespaced_name', 'doc'),
 	ast.Parameter:   ('is_out',),
 	ast.Type:        ('is_array', 'c_type'),
+	ast.Value:       ('value',),
 	ast.Array:       ('child_type',),
 	ast.Callable:    ('c_identifier',),
 	ast.Method:      ('virtual', 'static'),
-	ast.Enumeration: ('members',),
-	ast.Record:      ('disguised', 'fields', 'callbacks', 'methods'),
+	ast.Record:      ('disguised'),
 	ast.TypedNode:   ('name', 'doc', 'is_pointer', 'is_array'),
 	ast.Property:    ('writable', 'construct_only'),
-	ast.Class:       ('constructors', 'properties', 'signals', 'parent_class', 'interfaces', 'is_abstract')
+	ast.Class:       ('is_abstract')
 }
 
 class Namespace(models.Model): 
@@ -47,7 +47,8 @@ class TypedNode(models.Model):
 		return self.name
 
 class Value(Node):
-	pass
+	value_of = models.ForeignKey('Enumeration', null=True, blank=True)
+	val      = models.CharField(max_length=500)
 
 class Parameter(TypedNode):
 	is_out       = models.BooleanField(default=False)
@@ -85,17 +86,19 @@ class Callback(Type, Callable):
 	pass
 
 class Signal(Callable):
-	pass
+	signal_of = models.ForeignKey('Class')
 
 class Method(Callable):
-	virtual = models.BooleanField(default=False)
-	static  = models.BooleanField(default=False)
+	method_of      = models.ForeignKey('Record')
+	virtual        = models.BooleanField(default=False)
+	static         = models.BooleanField(default=False)
 
-class Constructor(Method):
-	pass
+class Constructor(Callable):
+	#TODO: Can a constructor be static? 
+	constructor_of = models.ForeignKey('Class')
 
 class Enumeration(Type):
-	members = models.ManyToManyField('Value')
+	pass
 
 class BitField(Enumeration):
 	pass
@@ -104,19 +107,16 @@ class Record(Type):
 	disguised = models.BooleanField(default=False)
 	fields    = models.ManyToManyField('Field')
 	callbacks = models.ManyToManyField('Callback')
-	methods   = models.ManyToManyField('Method')
 
 class Field (Node):
 	pass
 
 class Property(Field):
+	property_of    = models.ForeignKey('Class')
 	writable       = models.BooleanField(default=False)
 	construct_only = models.BooleanField(default=False)
 
 class Class(Record):
-	constructors = models.ManyToManyField('Constructor', null=True, blank=True)
-	properties   = models.ManyToManyField('Property',    null=True, blank=True)
-	signals      = models.ManyToManyField('Signal',      null=True, blank=True)
 	parent_class = models.ForeignKey     ('self',        null=True, blank=True)
 	interfaces   = models.ManyToManyField('Interface',   null=True, blank=True, related_name='class_interfaces')
 	is_abstract  = models.BooleanField(default=False)

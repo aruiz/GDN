@@ -13,6 +13,9 @@ admin.site.register(Callable,  SymbolAdmin)
 admin.site.register(Function,  SymbolAdmin)
 admin.site.register(Type,  SymbolAdmin)
 
+admin.site.register(Value,       SymbolAdmin)
+admin.site.register(Enumeration, SymbolAdmin)
+
 admin.site.register(TypedNode,  NsAdmin)
 admin.site.register(Parameter,  NsAdmin)
 admin.site.register(ReturnValue,  NsAdmin)
