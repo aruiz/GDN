@@ -54,8 +54,8 @@ class Parameter(TypedNode):
 	position     = models.IntegerField()
 	callable_obj = models.ForeignKey('Callable')
 
-#TODO: How come a return value has "is_out" wtf?
-class ReturnValue(Parameter):
+class ReturnValue(TypedNode):
+	callable_obj = models.ForeignKey('Callable')
 	def __unicode__(self):
 		c_id = None
 		if self.callable_obj != None:

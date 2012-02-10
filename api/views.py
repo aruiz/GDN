@@ -6,15 +6,23 @@ from django.db   import IntegrityError
 import gnome_developer_network.api.giraffe.ast as ast
 
 def index(request):
-	page = "<h1>Classes</h1><ul>"
-	for cl in Class.objects.all():
-		page += "<li>%s</li>" % cl.namespaced_name
-	page +="</ul>"
+	page = "<h1>GLib Functions</h1><ul>"
 
-	page += "<h1>Built-in types</h1><ul>"
-	for cl in BuiltIn.objects.all():
-		page += "<li>%s</li>" % cl.c_type
-	page +="</ul>"
+	for func in models.Function.objects.all():
+		rvalue = models.ReturnValue.objects.get(callable_obj = func)
+
+		prototype = rvalue.tn_type.c_type 
+
+		prototype += " " + func.c_identifier + "("
+		params = models.Parameter.objects.filter(callable_obj = func).order_by('position')
+		for param in params:
+			prototype += param.tn_type.c_type
+			prototype += " " + param.name + ", "
+		prototype += ")"
+
+		page += "<li>%s</li>" % (prototype,)
+
+	page += "<ul>"
 
 	return HttpResponse(page)
 
@@ -59,30 +67,30 @@ def _store_param (param, position, callable_obj):
 
 def _store_return_value (rvalue, callable_obj):
 	db_rvalue = models.ReturnValue()
-	_store_props (db_rvalue, rvalue, (ast.TypedNode, ast.Parameter))
+	_store_props (db_rvalue, rvalue, (ast.TypedNode,))
 	db_rvalue.tn_type = _store_type (rvalue.get_type())
-	db_rvalue.position = 0
 	db_rvalue.callable_obj = callable_obj
 	db_rvalue.save()
 
 	return db_rvalue
 
 def _store_function (fn):
+	pass
 	print fn.name
 	try:
 		db_fn = models.Function.objects.get(c_identifier = fn.c_identifier)
 	except ObjectDoesNotExist:
 		db_fn = models.Function(name = fn.name)
+		_store_props (db_fn, fn, (ast.Callable, ast.Node))
 		db_fn.save()
+
+		_store_return_value (fn.return_value, db_fn)
 
 		db_params = []
 		pos = 0
 		for param in fn.parameters:
 			db_params.append(_store_param(param, pos, db_fn))
 			pos += 1
-
-		_store_props (db_fn, fn, (ast.Callable, ast.Node))
-		db_fn.save()
 
 		return db_fn
 
