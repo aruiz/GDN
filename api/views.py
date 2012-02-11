@@ -123,13 +123,14 @@ def _store_value (val, db_ns, parent):
 
 	return db_val
 
-def _store_enum (enum, db_ns):
+def _store_enum (enum, db_ns, is_bitfield=False):
 	print enum.name
 	try:
 		db_enum = models.Enumeration.objects.get(c_type = enum.c_type)
 	except ObjectDoesNotExist:
 		db_enum = models.Enumeration()
 		_store_props (db_enum, enum, (ast.Node, ast.Type))
+		db_enum.is_bitfield = is_bitfield
 		db_enum.namespace = db_ns
 		db_enum.save()
 
@@ -149,10 +150,10 @@ def parse(request):
 
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
-		for fn in ns.functions:
-			_store_function (fn, db_ns)
-		for enum in ns.enumerations:
-			_store_enum (enum, db_ns)
+		#for fn in ns.functions:
+		#	_store_function (fn, db_ns)
+		#for enum in ns.enumerations:
+		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
 
 #
 #	if root_class == None:

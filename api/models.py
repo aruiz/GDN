@@ -83,7 +83,7 @@ class Function(Callable):
 	pass
 
 class Callback(Type, Callable):
-	pass
+	callback_of = models.ForeignKey('Record')
 
 class Signal(Callable):
 	signal_of = models.ForeignKey('Class')
@@ -98,18 +98,13 @@ class Constructor(Callable):
 	constructor_of = models.ForeignKey('Class')
 
 class Enumeration(Type):
-	pass
-
-class BitField(Enumeration):
-	pass
+	is_bitfield = models.BooleanField(default=False)
 
 class Record(Type):
 	disguised = models.BooleanField(default=False)
-	fields    = models.ManyToManyField('Field')
-	callbacks = models.ManyToManyField('Callback')
 
-class Field (Node):
-	pass
+class Field (TypedNode):
+	field_of = models.ForeignKey('Record')
 
 class Property(Field):
 	property_of    = models.ForeignKey('Class')
