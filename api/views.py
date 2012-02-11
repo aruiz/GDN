@@ -88,13 +88,10 @@ def _store_generic_callable (clble, db_ns, model, asts):
 
 		_store_return_value (clble.return_value, db_ns, db_clble)
 
-		db_params = []
 		pos = 0
 		for param in clble.parameters:
-			db_params.append(_store_param(param, pos, db_ns, db_clble))
+			_store_param(param, pos, db_ns, db_clble)
 			pos += 1
-
-		return db_clble
 
 	#TODO: Update Callable
 	return db_clble
@@ -103,9 +100,22 @@ def _store_function (fn, db_ns):
 	return _store_generic_callable (fn, db_ns, models.Function, (ast.Callable, ast.Node))
 
 def _store_callback (cb, db_ns, parent):
-	db_cb = _store_generic_callable (cb, db_ns, models.Callback, (ast.Callable, ast.Node))
-	db_cb.callback_of = parent
-	db_cb.save()
+	try:
+		db_cb = models.Callback.objects.get(namespaced_name = cb.namespaced_name)
+	except ObjectDoesNotExist:
+		db_cb = models.Callback()
+		db_cb.namespace = db_ns
+		_store_props (db_cb, cb, (ast.Node, ast.Type))
+		db_cb.save()
+
+		_store_return_value (cb.return_value, db_ns, db_cb)
+
+		pos = 0
+		for param in cb.parameters:
+			_store_param(param, pos, db_ns, db_cb)
+			pos += 1
+
+	return db_cb
 
 def _store_method (cb, db_ns, parent):
 	classes = (ast.Method, ast.Callable, ast.Node)
@@ -158,7 +168,6 @@ def _store_field (field, db_ns, parent):
 	return db_field
 
 def _store_record (record, db_ns):
-	pass
 	print record.name
 	try:
 		db_record = models.Record.objects.get(c_type = record.c_type)
@@ -179,10 +188,10 @@ def parse(request):
 
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
-		#for fn in ns.functions:
-		#	_store_function (fn, db_ns)
-		#for enum in ns.enumerations:
-		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
+		for fn in ns.functions:
+			_store_function (fn, db_ns)
+		for enum in ns.enumerations:
+			_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
 		for record in ns.records:
 			db_record = _store_record (record, db_ns)
 			for field in record.fields:
@@ -191,5 +200,8 @@ def parse(request):
 				_store_callback (callback, db_ns, db_record)
 			for method in record.methods:
 				_store_method (method, db_ns, db_record)
+		for cb in ns.callbacks:
+			_store_callback (cb, db_ns, None)
+
 
 	return HttpResponse("GIR to SQL transfusion completed")

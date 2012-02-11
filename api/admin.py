@@ -7,10 +7,13 @@ class SymbolAdmin(admin.ModelAdmin):
 class NsAdmin(admin.ModelAdmin):
   list_display = ('name',)
 
+class TypeAdmin(admin.ModelAdmin):
+  list_display = ('c_type',)
+
 admin.site.register(Node,       SymbolAdmin)
 admin.site.register(Namespace,  NsAdmin)
 admin.site.register(Method,     SymbolAdmin)
-admin.site.register(Callback,   SymbolAdmin)
+admin.site.register(Callback,   TypeAdmin)
 admin.site.register(Callable,   SymbolAdmin)
 admin.site.register(Function,   SymbolAdmin)
 admin.site.register(Type,       SymbolAdmin)

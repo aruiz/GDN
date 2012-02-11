@@ -59,8 +59,12 @@ class ReturnValue(TypedNode):
 	callable_obj = models.ForeignKey('Callable')
 	def __unicode__(self):
 		c_id = None
-		if self.callable_obj != None:
+
+		if hasattr(self.callable_obj, 'c_identifier'):
 			c_id = self.callable_obj.c_identifier
+		else:
+			hasattr(self.callable_obj, 'c_type')
+
 		return "%s(...) -> %s" % (c_id, self.tn_type)
 
 class Type(Node):
@@ -77,12 +81,15 @@ class Array(Type):
 	child_type = models.ManyToManyField('Type', related_name='array_child_type')
 	
 class Callable(Node):
-	c_identifier = models.CharField(max_length=500, unique=True)
-
-class Function(Callable):
 	pass
 
-class Constructor(Callable):
+class CallableId(Callable):
+	c_identifier = models.CharField(max_length=500, unique=True)
+
+class Function(CallableId):
+	pass
+
+class Constructor(CallableId):
 	#TODO: Can a constructor be static? 
 	constructor_of = models.ForeignKey('Class')
 
@@ -92,7 +99,7 @@ class Enumeration(Type):
 class Record(Type):
 	disguised = models.BooleanField(default=False)
 
-class Method(Callable):
+class Method(CallableId):
 	method_of      = models.ForeignKey('Record', null=True)
 	virtual        = models.BooleanField(default=False)
 	static         = models.BooleanField(default=False)
@@ -100,7 +107,7 @@ class Method(Callable):
 class Field (TypedNode):
 	field_of = models.ForeignKey('Record')
 
-class Callback(Type, Callable):
+class Callback(Callable, Type):
 	callback_of = models.ForeignKey('Record', null=True)
 
 class Class(Record):
@@ -108,7 +115,7 @@ class Class(Record):
 	interfaces   = models.ManyToManyField('Interface',   null=True, blank=True, related_name='class_interfaces')
 	is_abstract  = models.BooleanField(default=False)
 
-class Property(Field):
+class Property(TypedNode):
 	property_of    = models.ForeignKey('Class', null=True)
 	writable       = models.BooleanField(default=False)
 	construct_only = models.BooleanField(default=False)
