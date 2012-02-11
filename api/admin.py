@@ -12,6 +12,7 @@ admin.site.register(Namespace,  NsAdmin)
 admin.site.register(Callable,  SymbolAdmin)
 admin.site.register(Function,  SymbolAdmin)
 admin.site.register(Type,  SymbolAdmin)
+admin.site.register(Record,  SymbolAdmin)
 
 admin.site.register(Value,       SymbolAdmin)
 admin.site.register(Enumeration, SymbolAdmin)

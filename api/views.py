@@ -140,7 +140,19 @@ def _store_enum (enum, db_ns, is_bitfield=False):
 
 	return db_enum
 
+def _store_field (field, db_ns, parent):
+	pass
+def _store_record (record, db_ns):
+	try:
+		db_record = models.Record.objects.get(c_type = record.c_type)
+	except:
+		db_record = models.Record()
+		_store_props (db_record, record, (ast.Node, ast.Type, ast.Record))
+		db_record.namespace = db_ns
+		db_record.save()
 
+	return db_record
+	
 def parse(request):
 	repo = ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
@@ -154,9 +166,8 @@ def parse(request):
 		#	_store_function (fn, db_ns)
 		#for enum in ns.enumerations:
 		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
-
-#
-#	if root_class == None:
-#		return HttpResponse("<h1>No GObject.Object found</h1>")
+		for record in ns.records:
+			_store_record (record, db_ns)
+		
 
 	return HttpResponse("GIR to SQL transfusion completed")

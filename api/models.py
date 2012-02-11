@@ -12,7 +12,7 @@ PROPERTY_MAPPINS = {
 	ast.Array:       ('child_type',),
 	ast.Callable:    ('c_identifier',),
 	ast.Method:      ('virtual', 'static'),
-	ast.Record:      ('disguised'),
+	ast.Record:      ('disguised',),
 	ast.TypedNode:   ('name', 'doc', 'is_pointer', 'is_array'),
 	ast.Property:    ('writable', 'construct_only'),
 	ast.Class:       ('is_abstract')
@@ -82,16 +82,8 @@ class Callable(Node):
 class Function(Callable):
 	pass
 
-class Callback(Type, Callable):
-	callback_of = models.ForeignKey('Record')
-
 class Signal(Callable):
 	signal_of = models.ForeignKey('Class')
-
-class Method(Callable):
-	method_of      = models.ForeignKey('Record')
-	virtual        = models.BooleanField(default=False)
-	static         = models.BooleanField(default=False)
 
 class Constructor(Callable):
 	#TODO: Can a constructor be static? 
@@ -103,18 +95,26 @@ class Enumeration(Type):
 class Record(Type):
 	disguised = models.BooleanField(default=False)
 
+class Method(Callable):
+	method_of      = models.ForeignKey('Record')
+	virtual        = models.BooleanField(default=False)
+	static         = models.BooleanField(default=False)
+
 class Field (TypedNode):
 	field_of = models.ForeignKey('Record')
 
-class Property(Field):
-	property_of    = models.ForeignKey('Class')
-	writable       = models.BooleanField(default=False)
-	construct_only = models.BooleanField(default=False)
+class Callback(Type, Callable):
+	callback_of = models.ForeignKey('Record')
 
 class Class(Record):
 	parent_class = models.ForeignKey     ('self',        null=True, blank=True)
 	interfaces   = models.ManyToManyField('Interface',   null=True, blank=True, related_name='class_interfaces')
 	is_abstract  = models.BooleanField(default=False)
+
+class Property(Field):
+	property_of    = models.ForeignKey('Class')
+	writable       = models.BooleanField(default=False)
+	construct_only = models.BooleanField(default=False)
 
 class Interface(Class):
 	pass
