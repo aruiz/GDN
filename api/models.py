@@ -128,5 +128,4 @@ class Signal(Callable):
 	signal_of = models.ForeignKey('Class', null=True)
 
 class Interface(Class):
-	#TODO: Prerequisites
-	pass
+	prerequisites = models.ManyToManyField('Record', null=True, blank=True)
