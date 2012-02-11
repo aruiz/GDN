@@ -146,13 +146,23 @@ def _store_enum (enum, db_ns, is_bitfield=False):
 	return db_enum
 
 def _store_field (field, db_ns, parent):
-	pass
+	try:
+		db_field = models.Field.objects.get(field_of = parent, name = field.name)
+	except ObjectDoesNotExist:
+		db_field = models.Field()
+		db_field.tn_type = _store_type (field.get_type(), db_ns)
+		db_field.field_of = parent
+		_store_props (db_field, field, (ast.TypedNode,))
+		db_field.save()
+
+	return db_field
 
 def _store_record (record, db_ns):
+	pass
 	print record.name
 	try:
 		db_record = models.Record.objects.get(c_type = record.c_type)
-	except:
+	except ObjectDoesNotExist:
 		db_record = models.Record()
 		_store_props (db_record, record, (ast.Node, ast.Type, ast.Record))
 		db_record.namespace = db_ns

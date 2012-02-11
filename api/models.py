@@ -82,9 +82,6 @@ class Callable(Node):
 class Function(Callable):
 	pass
 
-class Signal(Callable):
-	signal_of = models.ForeignKey('Class')
-
 class Constructor(Callable):
 	#TODO: Can a constructor be static? 
 	constructor_of = models.ForeignKey('Class')
@@ -112,9 +109,12 @@ class Class(Record):
 	is_abstract  = models.BooleanField(default=False)
 
 class Property(Field):
-	property_of    = models.ForeignKey('Class')
+	property_of    = models.ForeignKey('Class', null=True)
 	writable       = models.BooleanField(default=False)
 	construct_only = models.BooleanField(default=False)
+
+class Signal(Callable):
+	signal_of = models.ForeignKey('Class', null=True)
 
 class Interface(Class):
 	pass
