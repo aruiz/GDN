@@ -96,7 +96,7 @@ class Record(Type):
 	disguised = models.BooleanField(default=False)
 
 class Method(Callable):
-	method_of      = models.ForeignKey('Record')
+	method_of      = models.ForeignKey('Record', null=True)
 	virtual        = models.BooleanField(default=False)
 	static         = models.BooleanField(default=False)
 
@@ -104,7 +104,7 @@ class Field (TypedNode):
 	field_of = models.ForeignKey('Record')
 
 class Callback(Type, Callable):
-	callback_of = models.ForeignKey('Record')
+	callback_of = models.ForeignKey('Record', null=True)
 
 class Class(Record):
 	parent_class = models.ForeignKey     ('self',        null=True, blank=True)

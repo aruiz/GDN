@@ -78,8 +78,6 @@ def _store_return_value (rvalue, db_ns, callable_obj):
 	return db_rvalue
 
 def _store_generic_callable (clble, db_ns, model, asts):
-	pass
-	print clble.name
 	try:
 		db_clble = model.objects.get(c_identifier = clble.c_identifier)
 	except ObjectDoesNotExist:
@@ -104,8 +102,16 @@ def _store_generic_callable (clble, db_ns, model, asts):
 def _store_function (fn, db_ns):
 	return _store_generic_callable (fn, db_ns, models.Function, (ast.Callable, ast.Node))
 
-def _store_callback (cb, db_ns):
-	return _store_generic_callable (cb, db_ns, models.Callback, (ast.Callback, ast.Node))
+def _store_callback (cb, db_ns, parent):
+	db_cb = _store_generic_callable (cb, db_ns, models.Callback, (ast.Callable, ast.Node))
+	db_cb.callback_of = parent
+	db_cb.save()
+
+def _store_method (cb, db_ns, parent):
+	classes = (ast.Method, ast.Callable, ast.Node)
+	db_method = _store_generic_callable (cb, db_ns, models.Method, classes)
+	db_method.method_of = parent
+	db_method.save()
 
 def _store_signal (cb, db_ns):
 	return _store_generic_callable (cb, db_ns, models.Signal, (ast.Callback, ast.Node))
@@ -124,7 +130,6 @@ def _store_value (val, db_ns, parent):
 	return db_val
 
 def _store_enum (enum, db_ns, is_bitfield=False):
-	print enum.name
 	try:
 		db_enum = models.Enumeration.objects.get(c_type = enum.c_type)
 	except ObjectDoesNotExist:
@@ -142,7 +147,9 @@ def _store_enum (enum, db_ns, is_bitfield=False):
 
 def _store_field (field, db_ns, parent):
 	pass
+
 def _store_record (record, db_ns):
+	print record.name
 	try:
 		db_record = models.Record.objects.get(c_type = record.c_type)
 	except:
@@ -167,7 +174,12 @@ def parse(request):
 		#for enum in ns.enumerations:
 		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
 		for record in ns.records:
-			_store_record (record, db_ns)
-		
+			db_record = _store_record (record, db_ns)
+			for field in record.fields:
+				_store_field (field, db_ns, db_record)
+			for callback in record.callbacks:
+				_store_callback (callback, db_ns, db_record)
+			for method in record.methods:
+				_store_method (method, db_ns, db_record)
 
 	return HttpResponse("GIR to SQL transfusion completed")
