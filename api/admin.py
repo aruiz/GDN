@@ -27,6 +27,9 @@ admin.site.register(Parameter,  NsAdmin)
 admin.site.register(ReturnValue,  NsAdmin)
 admin.site.register(Field,       NsAdmin)
 
+admin.site.register(Class,    SymbolAdmin)
+admin.site.register(Interface, SymbolAdmin)
+
 #admin.site.register(Callable, SymbolAdmin)
 #admin.site.register(Method, SymbolAdmin)
 #admin.site.register(Interface, SymbolAdmin)

@@ -123,8 +123,24 @@ def _store_method (cb, db_ns, parent):
 	db_method.method_of = parent
 	db_method.save()
 
-def _store_signal (cb, db_ns):
-	return _store_generic_callable (cb, db_ns, models.Signal, (ast.Callback, ast.Node))
+def _store_signal (sig, db_ns, parent):
+	try:
+		db_sig = models.Signal.objects.get(namespaced_name = sig.namespaced_name)
+	except ObjectDoesNotExist:
+		db_sig = models.Signal()
+		db_sig.namespace = db_ns
+		_store_props (db_sig, sig, (ast.Node, ast.Callable))
+		db_sig.signal_of = parent
+		db_sig.save()
+
+		_store_return_value (sig.return_value, db_ns, db_sig)
+
+		pos = 0
+		for param in sig.parameters:
+			_store_param(param, pos, db_ns, db_sig)
+			pos += 1
+
+	return db_sig
 
 def _store_value (val, db_ns, parent):
 	try:
@@ -167,10 +183,10 @@ def _store_field (field, db_ns, parent):
 
 	return db_field
 
-def _store_record (record, db_ns):
+def _store_struct (record, db_ns):
 	print record.name
 	try:
-		db_record = models.Record.objects.get(c_type = record.c_type)
+		db_record = models.Struct.objects.get(c_type = record.c_type)
 	except ObjectDoesNotExist:
 		db_record = models.Record()
 		_store_props (db_record, record, (ast.Node, ast.Type, ast.Record))
@@ -178,30 +194,81 @@ def _store_record (record, db_ns):
 		db_record.save()
 
 	return db_record
-	
+
+def _store_class (klass, db_ns, is_interface = False):
+	print klass.name
+	model = models.Class
+
+	print "parent %s" % klass.parent_class
+	print "interfaces %s" % klass.interfaces
+	if is_interface:
+		model = models.Interface
+	try:
+		db_class = model.objects.get(c_type = klass.c_type)
+	except ObjectDoesNotExist:
+		db_class = model()
+		_store_props (db_class, klass, (ast.Node, ast.Type, ast.Record, ast.Class))
+		db_class.namespace = db_ns
+		if not is_interface and klass.parent_class:
+			parent = _store_class (klass.parent_class, db_ns)
+			db_class.parent_class = parent
+		if is_interface:
+			#TODO: Prerequisites
+			pass
+		db_class.save()
+
+	return db_class
+
+def _store_property (prop, db_ns, parent):
+	return None
+
 def parse(request):
 	repo = ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
-#	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
+	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
 #	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
 	repo.link()
 
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
-		for fn in ns.functions:
-			_store_function (fn, db_ns)
-		for enum in ns.enumerations:
-			_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
-		for record in ns.records:
-			db_record = _store_record (record, db_ns)
-			for field in record.fields:
-				_store_field (field, db_ns, db_record)
-			for callback in record.callbacks:
-				_store_callback (callback, db_ns, db_record)
-			for method in record.methods:
-				_store_method (method, db_ns, db_record)
-		for cb in ns.callbacks:
-			_store_callback (cb, db_ns, None)
+		#for fn in ns.functions:
+		#	_store_function (fn, db_ns)
+		#for enum in ns.enumerations:
+		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
+		#for record in ns.records:
+		#	db_record = _store_struct (record, db_ns)
+		#	for field in record.fields:
+		#		_store_field (field, db_ns, db_record)
+		#	for callback in record.callbacks:
+		#		_store_callback (callback, db_ns, db_record)
+		#	for method in record.methods:
+		#		_store_method (method, db_ns, db_record)
+		#for cb in ns.callbacks:
+		#	_store_callback (cb, db_ns, None)
+		#for iface in ns.interfaces:
+		#	db_iface = _store_class (iface, db_ns, True)
+		#	for field in iface.fields:
+		#		_store_field (field, db_ns, db_iface)
+		#	for callback in iface.callbacks:
+		#		_store_callback (callback, db_ns, db_iface)
+		#	for method in iface.methods:
+		#		_store_method (method, db_ns, db_iface)
+		#	for prop in iface.properties:
+		#		_store_property (prop, db_ns, db_iface)
+		#	for signal in iface.signals:
+		#		_store_signal (signal, db_ns, db_iface)
 
+		for klass in ns.classes:
+			db_class = _store_class (klass, db_ns)
+			for field in klass.fields:
+				_store_field (field, db_ns, db_class)
+			for callback in klass.callbacks:
+				_store_callback (callback, db_ns, db_class)
+			for method in klass.methods:
+				_store_method (method, db_ns, db_class)
+			for prop in klass.properties:
+				_store_property (prop, db_ns, db_class)
+			for signal in klass.signals:
+				_store_signal (signal, db_ns, db_class)
 
 	return HttpResponse("GIR to SQL transfusion completed")

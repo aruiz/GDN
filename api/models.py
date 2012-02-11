@@ -15,7 +15,7 @@ PROPERTY_MAPPINS = {
 	ast.Record:      ('disguised',),
 	ast.TypedNode:   ('name', 'doc', 'is_pointer', 'is_array'),
 	ast.Property:    ('writable', 'construct_only'),
-	ast.Class:       ('is_abstract')
+	ast.Class:       ('is_abstract',)
 }
 
 class Namespace(models.Model): 
@@ -99,6 +99,9 @@ class Enumeration(Type):
 class Record(Type):
 	disguised = models.BooleanField(default=False)
 
+class Struct(Record):
+	pass
+
 class Method(CallableId):
 	method_of      = models.ForeignKey('Record', null=True)
 	virtual        = models.BooleanField(default=False)
@@ -121,7 +124,9 @@ class Property(TypedNode):
 	construct_only = models.BooleanField(default=False)
 
 class Signal(Callable):
+	c_identifier = models.CharField(max_length=500)
 	signal_of = models.ForeignKey('Class', null=True)
 
 class Interface(Class):
+	#TODO: Prerequisites
 	pass
