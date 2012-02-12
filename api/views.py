@@ -3,7 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 import gnome_developer_network.api.models as models
 from django.http import HttpResponse
 from django.db   import IntegrityError
-import gnome_developer_network.api.giraffe.ast as ast
+import giraffe.ast as ast
 
 def index(request):
 	page = "<h1>GLib Functions</h1><ul>"
@@ -226,37 +226,38 @@ def parse(request):
 	repo = ast.Repository()
 	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
 	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
-#	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
+	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
 	repo.link()
 
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
-		#for fn in ns.functions:
-		#	_store_function (fn, db_ns)
-		#for enum in ns.enumerations:
-		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
-		#for record in ns.records:
-		#	db_record = _store_struct (record, db_ns)
-		#	for field in record.fields:
-		#		_store_field (field, db_ns, db_record)
-		#	for callback in record.callbacks:
-		#		_store_callback (callback, db_ns, db_record)
-		#	for method in record.methods:
-		#		_store_method (method, db_ns, db_record)
-		#for cb in ns.callbacks:
-		#	_store_callback (cb, db_ns, None)
-		#for iface in ns.interfaces:
-		#	db_iface = _store_class (iface, db_ns, True)
-		#	for field in iface.fields:
-		#		_store_field (field, db_ns, db_iface)
-		#	for callback in iface.callbacks:
-		#		_store_callback (callback, db_ns, db_iface)
-		#	for method in iface.methods:
-		#		_store_method (method, db_ns, db_iface)
-		#	for prop in iface.properties:
-		#		_store_property (prop, db_ns, db_iface)
-		#	for signal in iface.signals:
-		#		_store_signal (signal, db_ns, db_iface)
+		for fn in ns.functions:
+			_store_function (fn, db_ns)
+		for enum in ns.enumerations:
+			_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
+		for record in ns.records:
+			db_record = _store_struct (record, db_ns)
+			for field in record.fields:
+				_store_field (field, db_ns, db_record)
+			for callback in record.callbacks:
+				_store_callback (callback, db_ns, db_record)
+			for method in record.methods:
+				_store_method (method, db_ns, db_record)
+		for cb in ns.callbacks:
+			_store_callback (cb, db_ns, None)
+
+		for iface in ns.interfaces:
+			db_iface = _store_class (iface, db_ns, True)
+			for field in iface.fields:
+				_store_field (field, db_ns, db_iface)
+			for callback in iface.callbacks:
+				_store_callback (callback, db_ns, db_iface)
+			for method in iface.methods:
+				_store_method (method, db_ns, db_iface)
+			for prop in iface.properties:
+				_store_property (prop, db_ns, db_iface)
+			for signal in iface.signals:
+				_store_signal (signal, db_ns, db_iface)
 
 		for klass in ns.classes:
 			db_class = _store_class (klass, db_ns)
@@ -270,5 +271,14 @@ def parse(request):
 				_store_property (prop, db_ns, db_class)
 			for signal in klass.signals:
 				_store_signal (signal, db_ns, db_class)
-
+			
+			for iface in klass.interfaces:
+				try:
+					db_iface = models.Interface.objects.get(namespaced_name = iface.namespaced_name)
+					db_class.interfaces.add(db_iface)
+				except ObjectDoesNotExist:
+					info = (iface.namespaced_name, klass.namespaced_name)
+					print "Couldn't find interface %s implemented by %s", info
+					continue
+			
 	return HttpResponse("GIR to SQL transfusion completed")

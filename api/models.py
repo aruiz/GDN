@@ -1,6 +1,6 @@
 # vim: tabstop=4 noexpandtab shiftwidth=4 softtabstop=4
 from django.db import models
-import gnome_developer_network.api.giraffe.ast as ast
+import giraffe.ast as ast
 
 """ We need to replicate each class of the AST's properties, we use this dict to automate the process. """
 PROPERTY_MAPPINS = {
