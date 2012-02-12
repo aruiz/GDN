@@ -184,7 +184,6 @@ def _store_field (field, db_ns, parent):
 	return db_field
 
 def _store_struct (record, db_ns):
-	print record.name
 	try:
 		db_record = models.Struct.objects.get(c_type = record.c_type)
 	except ObjectDoesNotExist:
@@ -196,11 +195,6 @@ def _store_struct (record, db_ns):
 	return db_record
 
 def _store_class (klass, db_ns, is_interface = False):
-	print klass.name
-	model = models.Class
-
-	print "parent %s" % klass.parent_class
-	print "interfaces %s" % klass.interfaces
 	if is_interface:
 		model = models.Interface
 	try:
@@ -212,15 +206,62 @@ def _store_class (klass, db_ns, is_interface = False):
 		if not is_interface and klass.parent_class:
 			parent = _store_class (klass.parent_class, db_ns)
 			db_class.parent_class = parent
-		if is_interface:
-			#TODO: Prerequisites
-			pass
 		db_class.save()
+
+		for field in klass.fields:
+			_store_field (field, db_ns, db_class)
+		for callback in klass.callbacks:
+			_store_callback (callback, db_ns, db_class)
+		for method in klass.methods:
+			_store_method (method, db_ns, db_class)
+		for prop in klass.properties:
+			_store_property (prop, db_ns, db_class)
+		for signal in klass.signals:
+			_store_signal (signal, db_ns, db_class)
 
 	return db_class
 
 def _store_property (prop, db_ns, parent):
-	return None
+	try:
+		db_prop = models.Property.objects.get (name = prop.name, property_of = parent)
+	except ObjectDoesNotExist:
+		db_type = _store_type (prop.get_type(), db_ns)
+		db_prop = models.Property()
+		db_prop.property_of = parent
+		db_prop.tn_type     = db_type
+		_store_props (db_prop, prop, (ast.TypedNode, ast.Property))
+		db_prop.save()
+
+	return db_prop
+
+def _store_prerequisite (prereq, db_ns):
+	if isinstance(prereq, ast.Interface):
+		model = models.Interface
+	elif isinstance(prereq, ast.Class):
+		model = models.Class
+	else:
+		print "Couldn't figure out a suitable type for the prerequisite %s for interface %s" % (prereq, iface.namespaced_name)
+		return None
+
+	try:
+		db_prereq = model.objects.get(namespaced_name = prereq.namespaced_name)
+	except ObjectDoesNotExist:
+		db_prereq = _store_class (prereq, db_ns, model == ast.Interface)
+
+		if model == models.Interface:
+			for _prereq in prereq.prerequisites:
+				_store_prerequisite (_prereq, db_ns)
+		else:
+			for iface in prereq.interfaces:
+				try:
+					db_iface = models.Interface.objects.get(namespaced_name = iface.namespaced_name)
+					db_prereq.interfaces.add(db_iface)
+				except ObjectDoesNotExist:
+					info = (iface.namespaced_name, prereq.namespaced_name)
+					print "Couldn't find interface %s implemented by %s", info
+					continue			
+
+	return db_prereq
 
 def parse(request):
 	repo = ast.Repository()
@@ -231,46 +272,31 @@ def parse(request):
 
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
-		for fn in ns.functions:
-			_store_function (fn, db_ns)
-		for enum in ns.enumerations:
-			_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
-		for record in ns.records:
-			db_record = _store_struct (record, db_ns)
-			for field in record.fields:
-				_store_field (field, db_ns, db_record)
-			for callback in record.callbacks:
-				_store_callback (callback, db_ns, db_record)
-			for method in record.methods:
-				_store_method (method, db_ns, db_record)
-		for cb in ns.callbacks:
-			_store_callback (cb, db_ns, None)
+		#for fn in ns.functions:
+		#	_store_function (fn, db_ns)
+		#for enum in ns.enumerations:
+		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
+		#for record in ns.records:
+		#	db_record = _store_struct (record, db_ns)
+		#	for field in record.fields:
+		#		_store_field (field, db_ns, db_record)
+		#	for callback in record.callbacks:
+		#		_store_callback (callback, db_ns, db_record)
+		#	for method in record.methods:
+		#		_store_method (method, db_ns, db_record)
+		#for cb in ns.callbacks:
+		#	_store_callback (cb, db_ns, None)
 
 		for iface in ns.interfaces:
 			db_iface = _store_class (iface, db_ns, True)
-			for field in iface.fields:
-				_store_field (field, db_ns, db_iface)
-			for callback in iface.callbacks:
-				_store_callback (callback, db_ns, db_iface)
-			for method in iface.methods:
-				_store_method (method, db_ns, db_iface)
-			for prop in iface.properties:
-				_store_property (prop, db_ns, db_iface)
-			for signal in iface.signals:
-				_store_signal (signal, db_ns, db_iface)
+
+			for prereq in iface.prerequisites:
+				db_prereq = _store_prerequisite (prereq, db_ns)
+				db_iface.prerequisites.add(db_prereq)
+			db_iface.save ()
 
 		for klass in ns.classes:
 			db_class = _store_class (klass, db_ns)
-			for field in klass.fields:
-				_store_field (field, db_ns, db_class)
-			for callback in klass.callbacks:
-				_store_callback (callback, db_ns, db_class)
-			for method in klass.methods:
-				_store_method (method, db_ns, db_class)
-			for prop in klass.properties:
-				_store_property (prop, db_ns, db_class)
-			for signal in klass.signals:
-				_store_signal (signal, db_ns, db_class)
 			
 			for iface in klass.interfaces:
 				try:
@@ -280,5 +306,6 @@ def parse(request):
 					info = (iface.namespaced_name, klass.namespaced_name)
 					print "Couldn't find interface %s implemented by %s", info
 					continue
-			
+			db_class.save()
+
 	return HttpResponse("GIR to SQL transfusion completed")
