@@ -5,6 +5,20 @@ from django.http import HttpResponse
 from django.db   import IntegrityError
 import giraffe.ast as ast
 
+AST_TYPE_MAPPINGS = {
+		ast.Type:       models.Type,
+		ast.BaseType:    models.BaseType,
+		ast.VarArgs:     models.VarArgs,
+		ast.Array:       models.Array,
+		ast.Enumeration: models.Enumeration,
+		ast.Record:      models.Struct,
+		ast.Class:       models.Class,
+		ast.Interface:   models.Interface,
+		ast.Callback:    models.Callback,
+		ast.BitField:    models.Enumeration
+}
+
+
 def index(request):
 	page = "<h1>GLib Functions</h1><ul>"
 
@@ -44,13 +58,35 @@ def _store_namespace (ns):
 	db_ns.save()
 
 	return db_ns
-	
-def _store_type (ast_type, db_ns):
+
+def _store_type_generic (ast_type, db_ns):
 	try:
-		db_type = models.Type.objects.get(c_type = ast_type.c_type)
+		db_type = models.Type.objects.get (namespaced_name = ast_type.namespaced_name)
+		return db_type
+	except:
+		pass
+
+	model = AST_TYPE_MAPPINGS[ast_type.__class__]
+
+	if model == models.Enumeration:
+		is_bitfield = type(ast_type) == ast.BitField
+		return _store_enum (ast_type, db_ns, is_bitfield)
+	if model == models.Struct:
+		return _store_struct (ast_type, db_ns)
+	if model == models.Class:
+		return _store_class (ast_type, dn_ns)
+	if model == models.Interface:
+		is_interface = type(ast_type) == ast.Interface
+		return _store_class (ast_type, db_ns, is_interface)
+
+	try:
+		db_type = model.objects.get(namespaced_name = ast_type.namespaced_name)
 	except ObjectDoesNotExist:
-		db_type = models.Type()
+		db_type = model()
 		db_type.namespace = db_ns
+		if isinstance(db_type, models.Array):
+			child_type = _store_type_generic (ast_type.child_type, db_ns)
+			db_type.child_type = child_type
 		_store_props (db_type, ast_type, (ast.Node, ast.Type))
 		db_type.save()
 
@@ -58,7 +94,7 @@ def _store_type (ast_type, db_ns):
 
 def _store_param (param, position, db_ns, callable_obj):
 	db_param = models.Parameter()
-	db_param.tn_type = _store_type (param.get_type(), db_ns)
+	db_param.tn_type = _store_type_generic (param.get_type(), db_ns)
 	db_param.position = position
 	db_param.callable_obj = callable_obj
 	db_param.namespace = db_ns
@@ -70,7 +106,7 @@ def _store_param (param, position, db_ns, callable_obj):
 def _store_return_value (rvalue, db_ns, callable_obj):
 	db_rvalue = models.ReturnValue()
 	_store_props (db_rvalue, rvalue, (ast.TypedNode,))
-	db_rvalue.tn_type = _store_type (rvalue.get_type(), db_ns)
+	db_rvalue.tn_type = _store_type_generic (rvalue.get_type(), db_ns)
 	db_rvalue.callable_obj = callable_obj
 	db_rvalue.namespace = db_ns
 	db_rvalue.save()
@@ -157,7 +193,7 @@ def _store_value (val, db_ns, parent):
 
 def _store_enum (enum, db_ns, is_bitfield=False):
 	try:
-		db_enum = models.Enumeration.objects.get(c_type = enum.c_type)
+		db_enum = models.Enumeration.objects.get(namespaced_name = enum.namespaced_name)
 	except ObjectDoesNotExist:
 		db_enum = models.Enumeration()
 		_store_props (db_enum, enum, (ast.Node, ast.Type))
@@ -176,7 +212,7 @@ def _store_field (field, db_ns, parent):
 		db_field = models.Field.objects.get(field_of = parent, name = field.name)
 	except ObjectDoesNotExist:
 		db_field = models.Field()
-		db_field.tn_type = _store_type (field.get_type(), db_ns)
+		db_field.tn_type = _store_type_generic (field.get_type(), db_ns)
 		db_field.field_of = parent
 		_store_props (db_field, field, (ast.TypedNode,))
 		db_field.save()
@@ -225,7 +261,7 @@ def _store_property (prop, db_ns, parent):
 	try:
 		db_prop = models.Property.objects.get (name = prop.name, property_of = parent)
 	except ObjectDoesNotExist:
-		db_type = _store_type (prop.get_type(), db_ns)
+		db_type = _store_type_generic (prop.get_type(), db_ns)
 		db_prop = models.Property()
 		db_prop.property_of = parent
 		db_prop.tn_type     = db_type
@@ -272,20 +308,22 @@ def parse(request):
 
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
-		#for fn in ns.functions:
-		#	_store_function (fn, db_ns)
-		#for enum in ns.enumerations:
-		#	_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
-		#for record in ns.records:
-		#	db_record = _store_struct (record, db_ns)
-		#	for field in record.fields:
-		#		_store_field (field, db_ns, db_record)
-		#	for callback in record.callbacks:
-		#		_store_callback (callback, db_ns, db_record)
-		#	for method in record.methods:
-		#		_store_method (method, db_ns, db_record)
-		#for cb in ns.callbacks:
-		#	_store_callback (cb, db_ns, None)
+		for fn in ns.functions:
+			_store_function (fn, db_ns)
+
+		for enum in ns.enumerations:
+			_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
+
+		for record in ns.records:
+			db_record = _store_struct (record, db_ns)
+			for field in record.fields:
+				_store_field (field, db_ns, db_record)
+			for callback in record.callbacks:
+				_store_callback (callback, db_ns, db_record)
+			for method in record.methods:
+				_store_method (method, db_ns, db_record)
+		for cb in ns.callbacks:
+			_store_callback (cb, db_ns, None)
 
 		for iface in ns.interfaces:
 			db_iface = _store_class (iface, db_ns, True)
