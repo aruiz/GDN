@@ -45,6 +45,46 @@ def _store_member(node, parent):
 
 	return db_member
 
+def _store_type(node):
+	if isinstance(node, ast.TypeUnknown):
+		model = models.TypeUnknown
+		props = (ast.Type,)
+	if isinstance(node, ast.Varargs):
+		model = models.Varargs
+		props = (ast.Type,)
+	if isinstance(node, ast.Array):
+		model = models.Array
+		props = (ast.Type, ast.Array)
+	if isinstance(node, ast.List):
+		model = models.List
+		props = (ast.Type, ast.List)
+	if isinstance(node, ast.Map):
+		model = models.Map
+		props = (ast.Type,)
+	else:
+		model = models.Type
+		props = (ast.Type,)
+	
+	try:
+		return model.objects.get (ctype=node.ctype)
+	except ObjectDoesNotExist:
+		pass
+
+	db_type = model()
+	_store_props (db_type, node, props)
+
+	if isinstance (node, ast.Array):
+		db_type.array_type   = _store_type (node.array_type)
+		db_type.element_type = _store_type (node.element_type)
+	if isinstance(node, ast.List):
+		db_type.element_type = _store_type (node.element_type)
+	if isinstance(node, ast.Map):
+		db_type.key_type   = _store_type (node.element_type)
+		db_type.value_type = _store_type (node.element_type)
+
+	db_type.save()
+	return db_type
+
 def _store_enum_generic (node, is_bitfield=False):
 	db_ns = _store_namespace(node.namespace)
 
@@ -90,6 +130,7 @@ def _store_alias (node):
 	db_alias = models.Alias()
 	db_alias.namespace = db_ns
 	_store_props (db_alias, node, (ast.Annotated, ast.Node, ast.Alias))
+	db_alias.target = _store_type (node.target)
 	db_alias.save()
 	return db_alias
 
@@ -99,8 +140,7 @@ def _store_node(node, db_ns):
 	if isinstance(node, ast.Bitfield):
 		_store_bitfield (node)
 	if isinstance(node, ast.Alias):
-		pass
-		#_store_alias (node)
+		_store_alias (node)
 
 def _store_namespace (ns):
 	try:

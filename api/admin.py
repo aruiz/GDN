@@ -19,8 +19,17 @@ class MemberAdmin(admin.ModelAdmin):
 admin.site.register(Member,  MemberAdmin)
 
 class AliasAdmin(admin.ModelAdmin):
-	list_display = ('name')
+	list_display = ('name',)
+admin.site.register(Alias, AliasAdmin)
 
+class TypeAdmin(admin.ModelAdmin):
+	list_display = ('ctype',)
+admin.site.register(Type, TypeAdmin)
+admin.site.register(TypeUnknown, TypeAdmin)
+admin.site.register(Varargs, TypeAdmin)
+admin.site.register(Array, TypeAdmin)
+admin.site.register(List, TypeAdmin)
+admin.site.register(Map, TypeAdmin)
 
 """
 class SymbolAdmin(admin.ModelAdmin):

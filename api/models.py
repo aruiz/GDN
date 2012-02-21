@@ -259,7 +259,6 @@ class Alias(Node):
 class TypeContainer(Annotated):
 	transfer = models.CharField(max_length=CF_MAX_LENGTH)
 	type     = models.ForeignKey('Type')
-	transfer = models.CharField(max_length=CF_MAX_LENGTH)
 
 class Parameter(TypeContainer):
 	argname      = models.CharField(max_length=CF_MAX_LENGTH)
