@@ -10,6 +10,10 @@ class EnumAdmin(admin.ModelAdmin):
 	list_display = ('name', 'ctype')
 admin.site.register(Enum,  EnumAdmin)
 
+class MemberAdmin(admin.ModelAdmin):
+	list_display = ('name', 'value', 'enum', 'bitfield')
+admin.site.register(Member,  MemberAdmin)
+
 """
 class SymbolAdmin(admin.ModelAdmin):
   list_display = ('name', 'namespaced_name', 'namespace')

@@ -22,9 +22,30 @@ def _store_props(db_obj, ast_obj, ast_classes):
 				continue
 			setattr(db_obj, prop, getattr(ast_obj, prop))
 
-def _store_member(node, db_ns, parent):
+
+def _store_member(node, parent):
 	is_bitfield = isinstance(parent, models.Bitfield)
-	print node
+	try:
+		if is_bitfield:
+			db_member = models.Member.objects.get(name=node.name, bitfield=parent)
+		else:
+			db_member = models.Member.objects.get(name=node.name, enum=parent)
+		return db_member
+	except ObjectDoesNotExist:
+		pass
+
+	db_member = models.Member()
+	_store_props (db_member, node, (ast.Annotated,ast.Member))
+
+	if is_bitfield:
+		db_member.bitfield = parent
+	else:
+		db_member.enum = parent
+
+	db_member.save()
+
+	return db_member
+
 
 def _store_enum (node, db_ns):
 	try:
@@ -39,7 +60,7 @@ def _store_enum (node, db_ns):
 	db_enum.save()
 
 	for member in node.members:
-		_store_member(member, db_ns, db_enum)
+		_store_member(member, db_enum)
 
 	#TODO: static_methods
 	return db_enum
