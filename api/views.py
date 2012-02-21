@@ -5,6 +5,9 @@ from django.http import HttpResponse
 from django.db   import IntegrityError
 from giscanner.girparser import GIRParser
 import giscanner.ast as ast
+
+GIR_PATH="/usr/share/gir-1.0/%s.gir"
+
 """
 AST_TYPE_MAPPINGS = {
 		ast.Type:       models.Type,
@@ -272,19 +275,38 @@ def _store_props(db_obj, ast_obj, ast_classes):
 def _store_namespace (ns):
 	try:
 		db_ns = models.Namespace.objects.get(name = ns.name, version = ns.version)
-		return db_ns
 	except ObjectDoesNotExist:
 		db_ns = models.Namespace()
 		_store_props (db_ns, ns, (ast.Namespace,))
 		db_ns.save()
-		return db_ns
+
+	print "Storing %s-%s" % (ns.name, ns.version)
+
+def _ns_exists (ns):
+	try:
+		models.Namespace.objects.get(name=ns.name, version=ns.version)
+		return True
+	except ObjectDoesNotExist:
+		return False
+
+def _store_parser (parser):
+	_build_includes_parsers (parser)
+	_store_namespace (parser.get_namespace())
+
+def _build_includes_parsers (parser):
+	incs = parser.get_includes()
+	for inc in incs:
+		if _ns_exists (inc):
+			continue
+		path = GIR_PATH % str(inc)
+		p = GIRParser()
+		p.parse(path)
+		_store_parser (p)
 
 def parse(request):
 	parser = GIRParser()
-	parser.parse("/usr/share/gir-1.0/Gtk-3.0.gir")
-	namespaces = [_store_namespace(parser.get_namespace()),]
-	for ns in parser.get_includes():
-		namespaces.append(_store_namespace (ns))
+	parser.parse(GIR_PATH % "Gtk-3.0")
+	_store_parser(parser)
 
 	return HttpResponse("GIR to SQL transfusion completed")
 
