@@ -3,8 +3,9 @@ from django.core.exceptions import ObjectDoesNotExist
 import gnome_developer_network.api.models as models
 from django.http import HttpResponse
 from django.db   import IntegrityError
-import giraffe.ast as ast
+from giscanner.girparser import GIRParser
 
+"""
 AST_TYPE_MAPPINGS = {
 		ast.Type:       models.Type,
 		ast.BaseType:    models.BaseType,
@@ -17,28 +18,6 @@ AST_TYPE_MAPPINGS = {
 		ast.Callback:    models.Callback,
 		ast.BitField:    models.Enumeration
 }
-
-
-def index(request):
-	page = "<h1>GLib Functions</h1><ul>"
-
-	for func in models.Function.objects.all():
-		rvalue = models.ReturnValue.objects.get(callable_obj = func)
-
-		prototype = rvalue.tn_type.c_type 
-
-		prototype += " " + func.c_identifier + "("
-		params = models.Parameter.objects.filter(callable_obj = func).order_by('position')
-		for param in params:
-			prototype += param.tn_type.c_type
-			prototype += " " + param.name + ", "
-		prototype += ")"
-
-		page += "<li>%s</li>" % (prototype,)
-
-	page += "<ul>"
-
-	return HttpResponse(page)
 
 def _store_props(db_obj, ast_obj, ast_classes):
 	for ast_class in ast_classes:
@@ -60,13 +39,14 @@ def _store_namespace (ns):
 	return db_ns
 
 def _store_type_generic (ast_type, db_ns):
-	try:
-		db_type = models.Type.objects.get (namespaced_name = ast_type.namespaced_name)
-		return db_type
-	except:
-		pass
-
 	model = AST_TYPE_MAPPINGS[ast_type.__class__]
+
+	if ast_type.name == "DateMonth":
+		import traceback
+		traceback.print_stack()
+		print model
+		print ast_type.__class__
+		print ast_type.name
 
 	if model == models.Enumeration:
 		is_bitfield = type(ast_type) == ast.BitField
@@ -80,7 +60,7 @@ def _store_type_generic (ast_type, db_ns):
 		return _store_class (ast_type, db_ns, is_interface)
 
 	try:
-		db_type = model.objects.get(namespaced_name = ast_type.namespaced_name)
+		db_type = model.objects.get(name = ast_type.name, c_type = ast_type.c_type)
 	except ObjectDoesNotExist:
 		db_type = model()
 		db_type.namespace = db_ns
@@ -115,7 +95,7 @@ def _store_return_value (rvalue, db_ns, callable_obj):
 
 def _store_generic_callable (clble, db_ns, model, asts):
 	try:
-		db_clble = model.objects.get(c_identifier = clble.c_identifier)
+		db_clble = model.objects.get(namespaced_name = clble.namespaced_name)
 	except ObjectDoesNotExist:
 		db_clble = model()
 		_store_props (db_clble, clble, asts)
@@ -298,14 +278,9 @@ def _store_prerequisite (prereq, db_ns):
 					continue			
 
 	return db_prereq
-
+"""
 def parse(request):
-	repo = ast.Repository()
-	repo.add_gir ("/usr/share/gir-1.0/GLib-2.0.gir")
-	repo.add_gir ("/usr/share/gir-1.0/GObject-2.0.gir")
-	repo.add_gir ("/usr/share/gir-1.0/Gio-2.0.gir")
-	repo.link()
-
+	"""
 	for ns in repo.namespaces:
 		db_ns = _store_namespace (ns)
 		for fn in ns.functions:
@@ -345,5 +320,13 @@ def parse(request):
 					print "Couldn't find interface %s implemented by %s", info
 					continue
 			db_class.save()
-
+"""
+	parser = GIRParser()
+	parser.parse("/usr/share/gir-1.0/Gtk-3.0.gir")
+	print "Parsed"
+	print parser.get_namespace()
 	return HttpResponse("GIR to SQL transfusion completed")
+
+def index(request):
+	page = "<h1>GLib Functions</h1><ul>"
+	return HttpResponse(page)
