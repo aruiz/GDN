@@ -1,6 +1,6 @@
 # vim: tabstop=4 noexpandtab shiftwidth=4 softtabstop=4
 from django.db import models
-import giraffe.ast as ast
+import giscanner.ast as ast
 
 """ We need to replicate each class of the AST's properties, we use this dict to automate the process. """
 """
@@ -132,11 +132,20 @@ class Interface(Class):
 """
 
 CF_MAX_LENGTH = 500
-PROPERTY_MAPPINS = {}
+PROPERTY_MAPPINS = {
+	ast.Namespace:  ('name', 'version'),
+}
 
 class Namespace(models.Model):
 	name = models.CharField (max_length = CF_MAX_LENGTH)
 	version = models.CharField (max_length = CF_MAX_LENGTH)
+	#TODO:
+	#From the parser:
+	#c includes
+	#c prefix
+	#shared libraries?
+	#pkg-config packages
+	#doc????
 
 class Type(models.Model):
 	ctype = models.CharField (max_length = CF_MAX_LENGTH)

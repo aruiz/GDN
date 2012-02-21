@@ -4,7 +4,7 @@ import gnome_developer_network.api.models as models
 from django.http import HttpResponse
 from django.db   import IntegrityError
 from giscanner.girparser import GIRParser
-
+import giscanner.ast as ast
 """
 AST_TYPE_MAPPINGS = {
 		ast.Type:       models.Type,
@@ -19,24 +19,6 @@ AST_TYPE_MAPPINGS = {
 		ast.BitField:    models.Enumeration
 }
 
-def _store_props(db_obj, ast_obj, ast_classes):
-	for ast_class in ast_classes:
-		for prop in models.PROPERTY_MAPPINS[ast_class]:
-			if getattr(ast_obj, prop) == None:
-				continue
-			setattr(db_obj, prop, getattr(ast_obj, prop))
-
-def _store_namespace (ns):
-	try:
-		db_ns = models.Namespace.objects.get(name = ns.name)
-	#TODO: Catch the right exception for this
-	except:
-		db_ns = models.Namespace()
-
-	_store_props (db_ns, ns, (ast.Namespace,))
-	db_ns.save()
-
-	return db_ns
 
 def _store_type_generic (ast_type, db_ns):
 	model = AST_TYPE_MAPPINGS[ast_type.__class__]
@@ -279,52 +261,31 @@ def _store_prerequisite (prereq, db_ns):
 
 	return db_prereq
 """
+
+def _store_props(db_obj, ast_obj, ast_classes):
+	for ast_class in ast_classes:
+		for prop in models.PROPERTY_MAPPINS[ast_class]:
+			if getattr(ast_obj, prop) == None:
+				continue
+			setattr(db_obj, prop, getattr(ast_obj, prop))
+
+def _store_namespace (ns):
+	try:
+		db_ns = models.Namespace.objects.get(name = ns.name, version = ns.version)
+		return db_ns
+	except ObjectDoesNotExist:
+		db_ns = models.Namespace()
+		_store_props (db_ns, ns, (ast.Namespace,))
+		db_ns.save()
+		return db_ns
+
 def parse(request):
-	"""
-	for ns in repo.namespaces:
-		db_ns = _store_namespace (ns)
-		for fn in ns.functions:
-			_store_function (fn, db_ns)
-
-		for enum in ns.enumerations:
-			_store_enum (enum, db_ns, isinstance(enum, ast.BitField))
-
-		for record in ns.records:
-			db_record = _store_struct (record, db_ns)
-			for field in record.fields:
-				_store_field (field, db_ns, db_record)
-			for callback in record.callbacks:
-				_store_callback (callback, db_ns, db_record)
-			for method in record.methods:
-				_store_method (method, db_ns, db_record)
-		for cb in ns.callbacks:
-			_store_callback (cb, db_ns, None)
-
-		for iface in ns.interfaces:
-			db_iface = _store_class (iface, db_ns, True)
-
-			for prereq in iface.prerequisites:
-				db_prereq = _store_prerequisite (prereq, db_ns)
-				db_iface.prerequisites.add(db_prereq)
-			db_iface.save ()
-
-		for klass in ns.classes:
-			db_class = _store_class (klass, db_ns)
-			
-			for iface in klass.interfaces:
-				try:
-					db_iface = models.Interface.objects.get(namespaced_name = iface.namespaced_name)
-					db_class.interfaces.add(db_iface)
-				except ObjectDoesNotExist:
-					info = (iface.namespaced_name, klass.namespaced_name)
-					print "Couldn't find interface %s implemented by %s", info
-					continue
-			db_class.save()
-"""
 	parser = GIRParser()
 	parser.parse("/usr/share/gir-1.0/Gtk-3.0.gir")
-	print "Parsed"
-	print parser.get_namespace()
+	namespaces = [_store_namespace(parser.get_namespace()),]
+	for ns in parser.get_includes():
+		namespaces.append(_store_namespace (ns))
+
 	return HttpResponse("GIR to SQL transfusion completed")
 
 def index(request):
