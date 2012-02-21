@@ -136,7 +136,7 @@ PROPERTY_MAPPINS = {}
 
 class Namespace(models.Model):
 	name = models.CharField (max_length = CF_MAX_LENGTH)
-    version = models.CharField (max_length = CF_MAX_LENGTH)
+	version = models.CharField (max_length = CF_MAX_LENGTH)
 
 class Type(models.Model):
 	ctype = models.CharField (max_length = CF_MAX_LENGTH)
@@ -168,8 +168,8 @@ class Annotated(models.Model):
 	#	self.attributes = [] # (key, value)*
 
 class Node(Annotated):
-    c_name = models.CharField (max_length = CF_MAX_LENGTH)
-    gi_name = models.CharField (max_length = CF_MAX_LENGTH)
+	c_name = models.CharField (max_length = CF_MAX_LENGTH)
+	gi_name = models.CharField (max_length = CF_MAX_LENGTH)
 	namespace = models.ForeignKey('Namespace')
 	name = models.CharField (max_length = CF_MAX_LENGTH)
 	foreign = models.BooleanField(default=False)
@@ -182,7 +182,7 @@ class Registered(models.Model):
 #	get_type = get_type
 
 class Callable(Node):
-	throws = models.BooleanField(default False)
+	throws = models.BooleanField(default=False)
 	instance_parameter = models.ForeignKey('Parameter')
 	#TODO
 	#	retval = retval
@@ -282,7 +282,6 @@ class Member(Annotated):
 
 class Compound(Node, Registered):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
-	gtype_name = models.CharField(max_length=CF_MAX_LENGTH)
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 	#TODO:
 	#	methods = []
@@ -311,7 +310,7 @@ class Union(Compound):
 	pass
 
 class Boxed(Node, Registered):
-	self.c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
+	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 	#TODO
 	#        self.constructors = []
 	#        self.methods = []
