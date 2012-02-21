@@ -18,6 +18,9 @@ class MemberAdmin(admin.ModelAdmin):
 	list_display = ('name', 'value', 'enum', 'bitfield')
 admin.site.register(Member,  MemberAdmin)
 
+class AliasAdmin(admin.ModelAdmin):
+	list_display = ('name')
+
 
 """
 class SymbolAdmin(admin.ModelAdmin):

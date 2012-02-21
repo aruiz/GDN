@@ -1,6 +1,6 @@
 # vim: tabstop=4 noexpandtab shiftwidth=4 softtabstop=4
 from django.core.exceptions import ObjectDoesNotExist
-import gnome_developer_network.api.models as models
+import api.models as models
 from django.http import HttpResponse
 from django.db   import IntegrityError
 from giscanner.girparser import GIRParser
@@ -79,11 +79,28 @@ def _store_enum (node):
 def _store_bitfield (node):
 	return _store_enum_generic (node, True)
 
+def _store_alias (node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		db_alias = models.Alias.objects.get(namespace = db_ns, name = node.name)
+		return db_alias
+	except ObjectDoesNotExist:
+		pass
+
+	db_alias = models.Alias()
+	db_alias.namespace = db_ns
+	_store_props (db_alias, node, (ast.Annotated, ast.Node, ast.Alias))
+	db_alias.save()
+	return db_alias
+
 def _store_node(node, db_ns):
 	if isinstance(node, ast.Enum):
 		_store_enum (node)
 	if isinstance(node, ast.Bitfield):
 		_store_bitfield (node)
+	if isinstance(node, ast.Alias):
+		pass
+		#_store_alias (node)
 
 def _store_namespace (ns):
 	try:

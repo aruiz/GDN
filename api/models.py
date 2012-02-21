@@ -142,6 +142,7 @@ PROPERTY_MAPPINS = {
 	ast.Enum:       ('c_symbol_prefix','ctype','error_domain'),
 	ast.Bitfield:   ('c_symbol_prefix','ctype'),
 	ast.Member:     ('name', 'symbol', 'nick', 'value'),
+	ast.Alias:      ('ctype',),
 }
 
 class Namespace(models.Model):
@@ -253,7 +254,7 @@ class Map(Type):
 
 class Alias(Node):
 	#TODO
-	#	target = target
+	target = models.ForeignKey('Type')
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
 
 class TypeContainer(Annotated):
