@@ -143,6 +143,10 @@ PROPERTY_MAPPINS = {
 	ast.Bitfield:   ('c_symbol_prefix','ctype'),
 	ast.Member:     ('name', 'symbol', 'nick', 'value'),
 	ast.Alias:      ('ctype',),
+	ast.Type:       ('ctype','gtype_name','origin_symbol','target_giname','is_const','resolved', 'unresolved_string'),
+	ast.Array:      ('zeroterminated','length_param_name','size'),
+	ast.List:       ('name',),
+	
 }
 
 class Namespace(models.Model):
@@ -174,6 +178,24 @@ class Type(models.Model):
 
 class TypeUnknown(Type):
 	pass
+
+class Varargs(Type):
+	pass
+
+class Array(Type):
+	zeroterminated = models.BooleanField(default=False)
+	length_param_name = models.CharField(max_length=CF_MAX_LENGTH)
+	size = models.IntegerField()
+	array_type = models.ForeignKey('Type', related_name='array_type_rn')
+	element_type = models.ForeignKey('Type', related_name='array_element_type_rn')
+
+class List(Type):
+	name = 	models.CharField(max_length=CF_MAX_LENGTH)
+	element_type = models.ForeignKey('Type', related_name='list_element_type_rn')
+
+class Map(Type):
+	key_type =  models.ForeignKey('Type', related_name='key_type_rn')
+	value_type =  models.ForeignKey('Type', related_name='value_type_rn')
 
 class Include(models.Model):
 	name = models.CharField(max_length=CF_MAX_LENGTH)
@@ -230,43 +252,19 @@ class VFunction(Callable):
 	#TODO
 	#	invoker = None
 
-class Varargs(Type):
-	pass
-
-class Array(Type):
-	zeroterminated = models.BooleanField(default=False)
-	length_param_name = models.CharField(max_length=CF_MAX_LENGTH)
-	size = models.IntegerField()
-	#TODO
-	#	array_type = array_type
-	#	element_type = element_type
-
-class List(Type):
-	name = 	models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	element_type = element_type
-
-class Map(Type):
-	pass
-	#TODO
-	#	key_type = key_type
-	#	value_type = value_type
-
 class Alias(Node):
-	#TODO
 	target = models.ForeignKey('Type')
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
 
 class TypeContainer(Annotated):
-	transfer = 	models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	type = typenode
-	#	transfer = transfer
+	transfer = models.CharField(max_length=CF_MAX_LENGTH)
+	type     = models.ForeignKey('Type')
+	transfer = models.CharField(max_length=CF_MAX_LENGTH)
 
 class Parameter(TypeContainer):
-	argname =  	models.CharField(max_length=CF_MAX_LENGTH)
-	direction =  	models.CharField(max_length=CF_MAX_LENGTH)
-	allow_none = models.BooleanField(default=False)
+	argname      = models.CharField(max_length=CF_MAX_LENGTH)
+	direction    = models.CharField(max_length=CF_MAX_LENGTH)
+	allow_none   = models.BooleanField(default=False)
 	closure_name = models.CharField(max_length=CF_MAX_LENGTH)
 	destroy_name = models.CharField(max_length=CF_MAX_LENGTH)
 	#TODO
