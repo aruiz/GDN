@@ -13,7 +13,6 @@ AST_TYPE_MAPPINGS = {
 }
 """
 
-
 def _store_props(db_obj, ast_obj, ast_classes):
 	""" Utility to map storage and ast properties """
 	for ast_class in ast_classes:
@@ -46,28 +45,45 @@ def _store_member(node, parent):
 
 	return db_member
 
+def _store_enum_generic (node, is_bitfield=False):
+	db_ns = _store_namespace(node.namespace)
 
-def _store_enum (node, db_ns):
+	if is_bitfield:
+		model = models.Bitfield
+	else:
+		model = models.Enum
+
 	try:
-		db_enum = models.Enum.objects.get(namespace = db_ns, name = node.name)
+		db_enum = model.objects.get(namespace = db_ns, name = node.name)
 		return db_enum
 	except ObjectDoesNotExist:
 		pass
 
-	db_enum = models.Enum()
-	db_enum.namespace = _store_namespace(node.namespace)
-	_store_props (db_enum, node, (ast.Annotated, ast.Node, ast.Enum, ast.Registered))
+	db_enum = model()
+	db_enum.namespace = db_ns
+	_store_props (db_enum, node, (ast.Annotated, ast.Node, ast.Registered))
+	if is_bitfield:
+		_store_props(db_enum, node, (ast.Bitfield,))
+	else:
+		_store_props(db_enum, node, (ast.Enum,))
 	db_enum.save()
 
 	for member in node.members:
 		_store_member(member, db_enum)
 
 	#TODO: static_methods
-	return db_enum
+
+def _store_enum (node):
+	return _store_enum_generic (node, False)
+
+def _store_bitfield (node):
+	return _store_enum_generic (node, True)
 
 def _store_node(node, db_ns):
 	if isinstance(node, ast.Enum):
-		_store_enum (node, db_ns)
+		_store_enum (node)
+	if isinstance(node, ast.Bitfield):
+		_store_bitfield (node)
 
 def _store_namespace (ns):
 	try:

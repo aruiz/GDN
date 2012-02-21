@@ -140,6 +140,7 @@ PROPERTY_MAPPINS = {
 	ast.Node:       ('c_name','gi_name','name','foreign'),
 	ast.Registered: ('gtype_name',),
 	ast.Enum:       ('c_symbol_prefix','ctype','error_domain'),
+	ast.Bitfield:   ('c_symbol_prefix','ctype'),
 	ast.Member:     ('name', 'symbol', 'nick', 'value'),
 }
 
