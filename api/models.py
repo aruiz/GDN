@@ -132,8 +132,14 @@ class Interface(Class):
 """
 
 CF_MAX_LENGTH = 500
+CF_VERSION_MAX_LENGTH = 20
+
 PROPERTY_MAPPINS = {
 	ast.Namespace:  ('name', 'version'),
+	ast.Annotated:  ('version','skip','introspectable','deprecated_version','doc'),
+	ast.Node:       ('c_name','gi_name','name','foreign'),
+	ast.Registered: ('gtype_name',),
+	ast.Enum:       ('c_symbol_prefix','ctype','error_domain'),
 }
 
 class Namespace(models.Model):
@@ -146,6 +152,8 @@ class Namespace(models.Model):
 	#shared libraries?
 	#pkg-config packages
 	#doc????
+	def __unicode__ (self):
+		return "%s-%s" % (self.name, self.version)
 
 class Type(models.Model):
 	ctype = models.CharField (max_length = CF_MAX_LENGTH)
@@ -158,23 +166,26 @@ class Type(models.Model):
 	#TODO
 	#target_foreign = target_foreign
 	#target_fundamental = target_fundamental
+	def __unicode__ (self):
+		return self.ctype
 
 class TypeUnknown(Type):
 	pass
 
 class Include(models.Model):
-	name = models.CharField(max_length=20)
-	version = models.CharField(max_length=20)
+	name = models.CharField(max_length=CF_MAX_LENGTH)
+	version = models.CharField(max_length=CF_VERSION_MAX_LENGTH)
 
 class Annotated(models.Model):
-	version = models.CharField(max_length=20)
+	version = models.CharField(max_length=CF_VERSION_MAX_LENGTH)
 	skip = models.BooleanField(default=False)
 	introspectable = models.BooleanField(default=False)
-	deprecated_version = models.CharField(max_length=20)
+	deprecated_version = models.CharField(max_length=CF_VERSION_MAX_LENGTH)
 	doc = models.TextField(null=True, blank=True)
+	deprecated = models.CharField(max_length=CF_MAX_LENGTH)
+	deprecated_version = models.CharField(max_length=CF_VERSION_MAX_LENGTH)
 	#TODO
-	#	deprecated = None
-	#	self.attributes = [] # (key, value)*
+	#attributes = [] # (key, value)*
 
 class Node(Annotated):
 	c_name = models.CharField (max_length = CF_MAX_LENGTH)
@@ -183,7 +194,9 @@ class Node(Annotated):
 	name = models.CharField (max_length = CF_MAX_LENGTH)
 	foreign = models.BooleanField(default=False)
 	#TODO
-	#	file_positions = set()
+	#file_positions = set()
+	def __unicode__ (self):
+		return self.gi_name
 
 class Registered(models.Model):
 	gtype_name = models.CharField (max_length = CF_MAX_LENGTH)
@@ -207,14 +220,7 @@ class Function(Callable):
 	#	symbol = symbol
 
 class ErrorQuarkFunction(Function):
-	pass
-	#TODO
-	#	error_domain = error_domain
-
-class ErrorQuarkFunction(Function):
-	pass
-	#TODO
-	#	error_domain = error_domain
+	error_domain = models.CharField(max_length=CF_MAX_LENGTH)
 
 class VFunction(Callable):
 	pass
@@ -270,7 +276,7 @@ class Return(TypeContainer):
 class Enum(Node, Registered):
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
-	error_domain = None
+	error_domain = models.CharField(max_length=CF_MAX_LENGTH)
 	#TODO
 	#	static_methods = []
 	#	members = members
@@ -286,8 +292,10 @@ class Member(Annotated):
 	name = models.CharField(max_length=CF_MAX_LENGTH)
 	symbol = models.CharField(max_length=CF_MAX_LENGTH)
 	nick = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	value = value
+	value = models.CharField(max_length=CF_MAX_LENGTH)
+	
+	enum = models.ForeignKey('Enum', null=True)
+	bitfield = models.ForeignKey('Bitfield', null=True)
 
 class Compound(Node, Registered):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)

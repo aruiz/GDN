@@ -6,6 +6,9 @@ class NsAdmin(admin.ModelAdmin):
   list_display = ('name','version')
 admin.site.register(Namespace,  NsAdmin)
 
+class EnumAdmin(admin.ModelAdmin):
+	list_display = ('name', 'ctype')
+admin.site.register(Enum,  EnumAdmin)
 
 """
 class SymbolAdmin(admin.ModelAdmin):
