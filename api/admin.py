@@ -35,6 +35,18 @@ admin.site.register(Array, TypeAdmin)
 admin.site.register(List, TypeAdmin)
 admin.site.register(Map, TypeAdmin)
 
+
+class TypeContainerAdmin(admin.ModelAdmin):
+	list_display = ('type', 'transfer')
+admin.site.register(TypeContainer, TypeContainerAdmin)
+admin.site.register(Return, TypeContainerAdmin)
+admin.site.register(Parameter, TypeContainerAdmin)
+
+class FunctionAdmin(admin.ModelAdmin):
+	list_display = ('c_name', 'gi_name')
+admin.site.register(Function, FunctionAdmin)
+
+
 """
 class SymbolAdmin(admin.ModelAdmin):
   list_display = ('name', 'namespaced_name', 'namespace')

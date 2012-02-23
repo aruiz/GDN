@@ -143,9 +143,12 @@ PROPERTY_MAPPINS = {
 	ast.Bitfield:   ('c_symbol_prefix','ctype'),
 	ast.Member:     ('name', 'symbol', 'nick', 'value'),
 	ast.Alias:      ('ctype',),
-	ast.Type:       ('ctype','gtype_name','origin_symbol','target_giname','is_const','resolved', 'unresolved_string'),
-	ast.Array:      ('zeroterminated','length_param_name','size'),
+	ast.Type:       ('ctype','gtype_name','origin_symbol','target_giname','is_const','resolved', 'target_foreign', 'target_fundamental'),
+	ast.Array:      ('array_type', 'zeroterminated','length_param_name','size'),
 	ast.List:       ('name',),
+	ast.Callable:   ('throws',),
+	ast.Function:   ('is_method','is_constructor','shadowed_by','shadows','moved_to','symbol'),
+	ast.TypeContainer: ('transfer',),
 	
 }
 
@@ -169,10 +172,9 @@ class Type(models.Model):
 	target_giname = models.CharField (max_length = CF_MAX_LENGTH)
 	is_const = models.BooleanField(default=False)
 	resolved = models.BooleanField(default=False)
-	unresolved_string = models.CharField (max_length = CF_MAX_LENGTH)
-	#TODO
-	#target_foreign = target_foreign
-	#target_fundamental = target_fundamental
+	#unresolved_string = models.CharField (max_length = CF_MAX_LENGTH)
+	target_foreign = models.CharField (max_length = CF_MAX_LENGTH, null=True)
+	target_fundamental = models.CharField (max_length = CF_MAX_LENGTH, null=True)
 	def __unicode__ (self):
 		return self.ctype
 
@@ -186,7 +188,7 @@ class Array(Type):
 	zeroterminated = models.BooleanField(default=False)
 	length_param_name = models.CharField(max_length=CF_MAX_LENGTH)
 	size = models.IntegerField()
-	array_type = models.ForeignKey('Type', related_name='array_type_rn')
+	array_type = models.CharField(max_length=CF_MAX_LENGTH)
 	element_type = models.ForeignKey('Type', related_name='array_element_type_rn')
 
 class List(Type):
@@ -230,27 +232,24 @@ class Registered(models.Model):
 
 class Callable(Node):
 	throws = models.BooleanField(default=False)
-	instance_parameter = models.ForeignKey('Parameter')
+	retval = models.ForeignKey('Return', related_name='clble_retval')
 	#TODO
-	#	retval = retval
-	#	parameters = parameters
+	#instance_parameter = models.ForeignKey('Parameter')
 
 class Function(Callable):
-	is_method = models.BooleanField(default=False)
+	is_method      = models.BooleanField(default=False)
 	is_constructor = models.BooleanField(default=False)
-	shadowed_by = models.CharField(max_length=CF_MAX_LENGTH)
-	shadows = models.CharField(max_length=CF_MAX_LENGTH)
-	moved_to = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	symbol = symbol
+	shadowed_by    = models.CharField(max_length=CF_MAX_LENGTH)
+	shadows        = models.CharField(max_length=CF_MAX_LENGTH)
+	moved_to       = models.CharField(max_length=CF_MAX_LENGTH)
+	symbol         = models.CharField(max_length=CF_MAX_LENGTH)
+	method_of      = models.ForeignKey('Registered', null=True)
 
 class ErrorQuarkFunction(Function):
 	error_domain = models.CharField(max_length=CF_MAX_LENGTH)
 
 class VFunction(Callable):
 	pass
-	#TODO
-	#	invoker = None
 
 class Alias(Node):
 	target = models.ForeignKey('Type')
@@ -266,9 +265,11 @@ class Parameter(TypeContainer):
 	allow_none   = models.BooleanField(default=False)
 	closure_name = models.CharField(max_length=CF_MAX_LENGTH)
 	destroy_name = models.CharField(max_length=CF_MAX_LENGTH)
+	callable     = models.ForeignKey('Callable')
 	#TODO
 	#	scope = scope
 	#	caller_allocates = caller_allocates
+
 
 class Return(TypeContainer):
 	pass

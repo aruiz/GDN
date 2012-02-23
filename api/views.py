@@ -74,7 +74,6 @@ def _store_type(node):
 	_store_props (db_type, node, props)
 
 	if isinstance (node, ast.Array):
-		db_type.array_type   = _store_type (node.array_type)
 		db_type.element_type = _store_type (node.element_type)
 	if isinstance(node, ast.List):
 		db_type.element_type = _store_type (node.element_type)
@@ -134,13 +133,38 @@ def _store_alias (node):
 	db_alias.save()
 	return db_alias
 
+def _store_retval(node):
+	db_ret = models.Return()
+	_store_props (db_ret, node, (ast.TypeContainer, ast.Annotated))
+	db_ret.type = _store_type(node.type)
+	db_ret.save()
+	return db_ret
+
+def _store_function(node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		return models.Function.objects.get(namespace = db_ns, name = node.name)
+	except ObjectDoesNotExist:
+		pass
+
+	db_func = models.Function()
+	_store_props (db_func, node, (ast.Node, ast.Callable, ast.Function))
+	db_func.namespace = db_ns
+	db_func.retval = _store_retval (node.retval)
+	db_func.save()
+	return db_func
+
 def _store_node(node, db_ns):
 	if isinstance(node, ast.Enum):
-		_store_enum (node)
+		return _store_enum (node)
 	if isinstance(node, ast.Bitfield):
-		_store_bitfield (node)
+		return _store_bitfield (node)
 	if isinstance(node, ast.Alias):
-		_store_alias (node)
+		return _store_alias (node)
+	if isinstance(node, ast.ErrorQuarkFunction):
+		pass
+	if isinstance(node, ast.Function):
+		return _store_function (node)
 
 def _store_namespace (ns):
 	try:
