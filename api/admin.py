@@ -6,6 +6,10 @@ class NsAdmin(admin.ModelAdmin):
   list_display = ('name','version')
 admin.site.register(Namespace,  NsAdmin)
 
+class NodeAdmin(admin.ModelAdmin):
+	list_display = ('gi_name', 'c_name', 'namespace', 'foreign')
+admin.site.register(Node,  NodeAdmin)
+
 class EnumAdmin(admin.ModelAdmin):
 	list_display = ('name', 'ctype')
 admin.site.register(Enum,  EnumAdmin)
