@@ -149,8 +149,10 @@ PROPERTY_MAPPINS = {
 	ast.Callable:   ('throws',),
 	ast.Function:   ('is_method','is_constructor','shadowed_by','shadows','moved_to','symbol'),
 	ast.TypeContainer: ('transfer',),
-	ast.Parameter:     ('argname', 'direction', 'allow_none', 'closure_name', 'destroy_name'),
-	
+	ast.Parameter:  ('argname', 'direction', 'allow_none', 'closure_name', 'destroy_name'),
+	ast.Compound:   (),
+	ast.Record:     (),
+	ast.Field:     ('name','readable','writable','private','bits'),
 }
 
 class Namespace(models.Model):
@@ -278,128 +280,114 @@ class Return(TypeContainer):
 
 class Enum(Node, Registered):
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
-	ctype = models.CharField(max_length=CF_MAX_LENGTH)
-	error_domain = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	static_methods = []
-	#	members = members
+	ctype           = models.CharField(max_length=CF_MAX_LENGTH)
+	error_domain    = models.CharField(max_length=CF_MAX_LENGTH)
+	static_methods  = models.ManyToManyField('Function')
+	members         = models.ManyToManyField('Member')
 
 class Bitfield(Node, Registered):
-	ctype = models.CharField(max_length=CF_MAX_LENGTH)
+	ctype           = models.CharField(max_length=CF_MAX_LENGTH)
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	# members = members
-	# self.static_methods = []
+	members         = models.ManyToManyField('Member')
+	static_methods  = models.ManyToManyField('Function')
 
 class Member(Annotated):
 	name = models.CharField(max_length=CF_MAX_LENGTH)
 	symbol = models.CharField(max_length=CF_MAX_LENGTH)
 	nick = models.CharField(max_length=CF_MAX_LENGTH)
 	value = models.CharField(max_length=CF_MAX_LENGTH)
-	
-	enum = models.ForeignKey('Enum', null=True)
-	bitfield = models.ForeignKey('Bitfield', null=True)
 
 class Compound(Node, Registered):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO:
-	#	methods = []
-	#	disguised = disguised
-	#	get_type = get_type	
-	#	static_methods = []
-	#	fields = []
-	#	constructors = []
+	disguised       = models.BooleanField(default=False)
+	methods         = models.ManyToManyField('Function', related_name='cmp_methods')
+	static_methods  = models.ManyToManyField('Function', related_name='cmp_static_methods')
+	constructors    = models.ManyToManyField('Function', related_name='cmp_constructors')
+	fields          = models.ManyToManyField('Field', related_name='cmp_fields')
+	#get_type = get_type	
 
 class Field(Annotated):
 	name = models.CharField(max_length=CF_MAX_LENGTH)
 	readable = models.BooleanField(default=False)
 	writable = models.BooleanField(default=False)
 	private = models.BooleanField(default=False)
-	#TODO
-	#	type = typenode
-	#	bits = bits
-	#	anonymous_node = anonymous_node
+	bits = models.CharField(max_length=CF_MAX_LENGTH)
+	type = models.ForeignKey('Type', null=True)
+	anonymous_node = models.ForeignKey('Callback', null=True)
 
 class Record(Compound):
-	#TODO
-	#is_gtype_struct_for = None
-	pass
+	is_gtype_struct_for = models.ForeignKey('Type', null=True)
 
 class Union(Compound):
 	pass
 
 class Boxed(Node, Registered):
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#        self.constructors = []
-	#        self.methods = []
-	#        self.static_methods = []
+	constructors    = models.ManyToManyField('Function', related_name='bxd_constructors')
+	methods         = models.ManyToManyField('Function', related_name='bxd_methods')
+	static_methods  = models.ManyToManyField('Function', related_name='bxd_static_methods')
 
 class Signal(Callable):
 	when = models.CharField(max_length=20)
-	#TODO
-	#	no_recurse = no_recurse
-	#	detailed = detailed
-	#	action = action
-	#	no_hooks = no_hooks
+	no_recurse = models.BooleanField(default=False)
+	detailed = models.BooleanField(default=False)
+	action = models.BooleanField(default=False)
+	no_hooks = models.BooleanField(default=False)
 
 class Class(Node, Registered):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 	fundamental = models.BooleanField(default=False)
 	is_abstract = models.BooleanField(default=False)
-	#TODO
-	#	parent = parent
-	#	unref_func = None
-	#	ref_func = None
-	#	set_value_func = None
-	#	get_value_func = None
+	parent         = models.ForeignKey('Class',    null=True)
+	unref_func     = models.ForeignKey('Function', null=True, related_name='cls_unref')
+	ref_func       = models.ForeignKey('Function', null=True, related_name='cls_ref')
+	set_value_func = models.ForeignKey('Function', null=True, related_name='cls_set_value')
+	get_value_func = models.ForeignKey('Function', null=True, related_name='cls_get_value')
 
-	#	self.glib_type_struct = None
-		# if there are 'hidden' parents
-		#        self.parent_chain = []
+	glib_type_struct = models.ForeignKey('Type', null=True)
 
-	#        self.methods = []
-	#        self.virtual_methods = []
-	#        self.static_methods = []
-	#        self.interfaces = []
-	#        self.constructors = []
-	#        self.properties = []
-	#        self.fields = []
-	#        self.signals = []
+	methods         = models.ManyToManyField('Function', related_name='cls_methods')
+	virtual_methos  = models.ManyToManyField('Function', related_name='cls_vmethods')
+	static_methods  = models.ManyToManyField('Function', related_name='cls_smethods')
+	constructors    = models.ManyToManyField('Function', related_name='cls_constructors')
+	signals         = models.ManyToManyField('Signal', related_name='cls_signals')
+	interfaces      = models.ManyToManyField('Interface', related_name='cls_ifaces')
 
+	fields          = models.ManyToManyField('Field', related_name='cls_fields')
+	properties      = models.ManyToManyField('Property', related_name='cls_props')
+	#parent_chain = []
 
 class Interface(Node, Registered):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	parent
-	#	glib_type_struct = None
-	#        parent_chain = []
-	#        self.methods = []
-	#        self.signals = []
-	#        self.static_methods = []
-	#        self.virtual_methods = []
-	#        self.properties = []
-	#        self.fields = []
-	#        self.prerequisites = []
 
+	methods         = models.ManyToManyField('Function', related_name='iface_methods')
+	virtual_methos  = models.ManyToManyField('Function', related_name='iface_vmethods')
+	static_methods  = models.ManyToManyField('Function', related_name='iface_smethods')
+	constructors    = models.ManyToManyField('Function', related_name='iface_constructors')
+	signals         = models.ManyToManyField('Signal', related_name='iface_signals')
+
+	fields          = models.ManyToManyField('Field', related_name='iface_fields')
+	properties      = models.ManyToManyField('Property', related_name='iface_props')
+
+	prerequisites = models.ManyToManyField('Type', related_name='iface_prereq')
+	glib_type_struct = models.ForeignKey('Type', null=True, related_name='iface_glib_type_struct')
+	#parent_chain = []
 
 class Constant(Node):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
-	#TODO
-	#	value_type = value_type
-	#	value = value
+	value = models.CharField(max_length=CF_MAX_LENGTH)
+	value_type = models.ForeignKey('Type')
 
 class Property(Node):
-	readable = models.BooleanField(default=False)
-	writable = models.BooleanField(default=False)
+	readable       = models.BooleanField(default=False)
+	writable       = models.BooleanField(default=False)
 	construct_only = models.BooleanField(default=False)
-	transfer = models.CharField(max_length=20)
-	#TODO
-	#	type = typeobj
-	#	construct = construct
+	transfer       = models.CharField(max_length=20)
+	construct      = models.BooleanField(default=False)
+	type = models.ForeignKey('Type')
 
 class Callback(Callable):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH, null=True)
