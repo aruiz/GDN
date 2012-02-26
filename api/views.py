@@ -143,8 +143,6 @@ def _store_retval(node):
 def _store_param (node):
 	db_param = models.Parameter()
 	db_param.type = _store_type (node.type)
-	print node.scope.__class__
-	print node.caller_allocates.__class__
 	_store_props (db_param, node, (ast.Parameter, ast.TypeContainer, ast.Annotated))
 	db_param.save()
 	return db_param
@@ -166,7 +164,8 @@ def _store_function(node, parent=None):
 
 	i = 0
 	for param in node.parameters:
-		#TODO: Instance parameter
+		if param is node.instance_parameter:
+			db_func.instance_parameter = i
 		db_param = _store_param (param)
 		models.FunctionParameter(function=db_func, parameter=db_param, position=i).save()
 		i += 1
