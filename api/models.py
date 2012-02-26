@@ -149,6 +149,7 @@ PROPERTY_MAPPINS = {
 	ast.Callable:   ('throws',),
 	ast.Function:   ('is_method','is_constructor','shadowed_by','shadows','moved_to','symbol'),
 	ast.TypeContainer: ('transfer',),
+	ast.Parameter:     ('argname', 'direction', 'allow_none', 'closure_name', 'destroy_name'),
 	
 }
 
@@ -233,8 +234,7 @@ class Registered(models.Model):
 class Callable(Node):
 	throws = models.BooleanField(default=False)
 	retval = models.ForeignKey('Return', related_name='clble_retval')
-	#TODO
-	#instance_parameter = models.ForeignKey('Parameter')
+	instance_parameter = models.IntegerField ()
 
 class Function(Callable):
 	is_method      = models.BooleanField(default=False)
@@ -244,6 +244,11 @@ class Function(Callable):
 	moved_to       = models.CharField(max_length=CF_MAX_LENGTH)
 	symbol         = models.CharField(max_length=CF_MAX_LENGTH)
 	method_of      = models.ForeignKey('Registered', null=True)
+
+class FunctionParameter (models.Model):
+	function = models.ForeignKey('Function')
+	parameter = models.ForeignKey('Parameter')
+	position = models.IntegerField ()
 
 class ErrorQuarkFunction(Function):
 	error_domain = models.CharField(max_length=CF_MAX_LENGTH)
@@ -265,11 +270,8 @@ class Parameter(TypeContainer):
 	allow_none   = models.BooleanField(default=False)
 	closure_name = models.CharField(max_length=CF_MAX_LENGTH)
 	destroy_name = models.CharField(max_length=CF_MAX_LENGTH)
-	callable     = models.ForeignKey('Callable')
-	#TODO
-	#	scope = scope
-	#	caller_allocates = caller_allocates
-
+	scope = scope = models.CharField(max_length=CF_MAX_LENGTH)
+	caller_allocates = models.BooleanField(default=False)
 
 class Return(TypeContainer):
 	pass

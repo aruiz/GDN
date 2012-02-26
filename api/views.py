@@ -78,8 +78,8 @@ def _store_type(node):
 	if isinstance(node, ast.List):
 		db_type.element_type = _store_type (node.element_type)
 	if isinstance(node, ast.Map):
-		db_type.key_type   = _store_type (node.element_type)
-		db_type.value_type = _store_type (node.element_type)
+		db_type.key_type   = _store_type (node.key_type)
+		db_type.value_type = _store_type (node.value_type)
 
 	db_type.save()
 	return db_type
@@ -140,7 +140,16 @@ def _store_retval(node):
 	db_ret.save()
 	return db_ret
 
-def _store_function(node):
+def _store_param (node):
+	db_param = models.Parameter()
+	db_param.type = _store_type (node.type)
+	print node.scope.__class__
+	print node.caller_allocates.__class__
+	_store_props (db_param, node, (ast.Parameter, ast.TypeContainer, ast.Annotated))
+	db_param.save()
+	return db_param
+
+def _store_function(node, parent=None):
 	db_ns = _store_namespace(node.namespace)
 	try:
 		return models.Function.objects.get(namespace = db_ns, name = node.name)
@@ -151,7 +160,17 @@ def _store_function(node):
 	_store_props (db_func, node, (ast.Node, ast.Callable, ast.Function))
 	db_func.namespace = db_ns
 	db_func.retval = _store_retval (node.retval)
+	db_func.method_of=parent
+	db_func.instance_parameter = -1
 	db_func.save()
+
+	i = 0
+	for param in node.parameters:
+		#TODO: Instance parameter
+		db_param = _store_param (param)
+		models.FunctionParameter(function=db_func, parameter=db_param, position=i).save()
+		i += 1
+
 	return db_func
 
 def _store_node(node, db_ns):
