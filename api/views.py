@@ -35,6 +35,8 @@ def _store_member(node):
 	return db_member
 
 def _store_type(node):
+	if node is None:
+		return None
 	if isinstance(node, ast.TypeUnknown):
 		model = models.TypeUnknown
 		props = (ast.Type,)
@@ -178,7 +180,23 @@ def _store_record(node):
 		pass
 
 	db_record = models.Record()
+	db_record.namespace = db_ns
 	_store_props(db_record, node, (ast.Node, ast.Registered, ast.Compound))
+	db_record.is_gtype_struct_for = _store_type(node.is_gtype_struct_for)
+	db_record.save()
+
+	for method in node.methods:
+		method.namespace = node.namespace
+		db_record.methods.add(_store_function(method))
+	for static_method in node.static_methods:
+		static_method.namespace = node.namespace
+		db_record.static_methods.add(_store_function(static_method))
+	for constructor in node.constructors:
+		constructor.namespace = node.namespace
+		db_record.constructors.add(_store_function(constructor))
+#	for field in node.fields:
+#		db_record.fields.add(_store_field())
+
 	return db_record
 
 def _store_node(node, db_ns):
@@ -192,9 +210,8 @@ def _store_node(node, db_ns):
 		return _store_function (node, is_error_quark=True)
 	if isinstance(node, ast.Function):
 		return _store_function (node)
-#	if isinstance(node, ast.Record):
-#		#return _store_record (node)
-#		pass
+	if isinstance(node, ast.Record):
+		return _store_record (node)
 
 def _store_namespace (ns):
 	if ns is None:
@@ -237,8 +254,6 @@ def _build_includes_parsers (parser):
 		_store_parser (p)
 
 def parse(request):
-	models.Namespace.objects.all().delete()
-
 	parser = GIRParser()
 	parser.parse(GIR_PATH % "Gtk-3.0")
 	_store_parser(parser)

@@ -9,6 +9,7 @@ admin.site.register(Namespace,  NsAdmin)
 class NodeAdmin(admin.ModelAdmin):
 	list_display = ('gi_name', 'c_name', 'namespace', 'foreign')
 admin.site.register(Node,  NodeAdmin)
+admin.site.register(Record,  NodeAdmin)
 
 class EnumAdmin(admin.ModelAdmin):
 	list_display = ('name', 'ctype')
@@ -34,7 +35,6 @@ admin.site.register(Varargs, TypeAdmin)
 admin.site.register(Array, TypeAdmin)
 admin.site.register(List, TypeAdmin)
 admin.site.register(Map, TypeAdmin)
-
 
 class TypeContainerAdmin(admin.ModelAdmin):
 	list_display = ('type', 'transfer')

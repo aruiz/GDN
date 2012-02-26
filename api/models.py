@@ -150,9 +150,8 @@ PROPERTY_MAPPINS = {
 	ast.Function:   ('is_method','is_constructor','shadowed_by','shadows','moved_to','symbol'),
 	ast.TypeContainer: ('transfer',),
 	ast.Parameter:  ('argname', 'direction', 'allow_none', 'closure_name', 'destroy_name'),
-	ast.Compound:   (),
-	ast.Record:     (),
-	ast.Field:     ('name','readable','writable','private','bits'),
+	ast.Compound:   ('ctype', 'c_symbol_prefix', 'disguised'),
+	ast.Field:      ('name','readable','writable','private','bits'),
 }
 
 class Namespace(models.Model):
@@ -226,7 +225,7 @@ class Node(Annotated):
 	#TODO
 	#file_positions = set()
 	def __unicode__ (self):
-		return self.gi_name
+		return self.name
 
 class Registered(models.Model):
 	gtype_name = models.CharField (max_length = CF_MAX_LENGTH)
