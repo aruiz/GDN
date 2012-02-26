@@ -43,9 +43,12 @@ admin.site.register(Return, TypeContainerAdmin)
 admin.site.register(Parameter, TypeContainerAdmin)
 
 class FunctionAdmin(admin.ModelAdmin):
-	list_display = ('c_name', 'gi_name')
+	list_display = ('c_name', 'gi_name', 'instance_parameter')
 admin.site.register(Function, FunctionAdmin)
 
+class FunctionParameterAdmin(admin.ModelAdmin):
+	list_display = ('function', 'parameter', 'position')
+admin.site.register(FunctionParameter, FunctionParameterAdmin)
 
 """
 class SymbolAdmin(admin.ModelAdmin):
