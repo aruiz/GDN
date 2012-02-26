@@ -19,7 +19,7 @@ class BitfieldAdmin(admin.ModelAdmin):
 admin.site.register(Bitfield,  BitfieldAdmin)
 
 class MemberAdmin(admin.ModelAdmin):
-	list_display = ('name', 'value', 'enum', 'bitfield')
+	list_display = ('name', 'value')
 admin.site.register(Member,  MemberAdmin)
 
 class AliasAdmin(admin.ModelAdmin):

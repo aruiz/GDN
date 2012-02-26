@@ -22,25 +22,14 @@ def _store_props(db_obj, ast_obj, ast_classes):
 			setattr(db_obj, prop, getattr(ast_obj, prop))
 
 
-def _store_member(node, parent):
-	is_bitfield = isinstance(parent, models.Bitfield)
+def _store_member(node):
 	try:
-		if is_bitfield:
-			db_member = models.Member.objects.get(name=node.name, bitfield=parent)
-		else:
-			db_member = models.Member.objects.get(name=node.name, enum=parent)
-		return db_member
+		return models.Member.objects.get(name=node.name)
 	except ObjectDoesNotExist:
 		pass
 
 	db_member = models.Member()
 	_store_props (db_member, node, (ast.Annotated,ast.Member))
-
-	if is_bitfield:
-		db_member.bitfield = parent
-	else:
-		db_member.enum = parent
-
 	db_member.save()
 
 	return db_member
@@ -108,9 +97,12 @@ def _store_enum_generic (node, is_bitfield=False):
 	db_enum.save()
 
 	for member in node.members:
-		_store_member(member, db_enum)
+		db_enum.members.add(_store_member(member))
+	for smethod in node.static_methods:
+		smethod.namespace = node.namespace
+		db_enum.static_methods.add(_store_function (smethod))
 
-	#TODO: static_methods
+	return db_enum
 
 def _store_enum (node):
 	return _store_enum_generic (node, False)
@@ -147,19 +139,25 @@ def _store_param (node):
 	db_param.save()
 	return db_param
 
-def _store_function(node, parent=None):
+def _store_function(node, parent=None, is_error_quark=False):
 	db_ns = _store_namespace(node.namespace)
 	try:
-		return models.Function.objects.get(namespace = db_ns, name = node.name)
+		return models.Function.objects.get(namespace = db_ns, c_name = node.name)
 	except ObjectDoesNotExist:
 		pass
 
-	db_func = models.Function()
+	if is_error_quark:
+		db_func = models.ErrorQuarkFunction()
+		db_func.error_domain = node.error_domain
+	else:
+		db_func = models.Function()
 	_store_props (db_func, node, (ast.Node, ast.Callable, ast.Function))
 	db_func.namespace = db_ns
 	db_func.retval = _store_retval (node.retval)
 	db_func.method_of=parent
 	db_func.instance_parameter = -1
+	if parent:
+		method_of = _store_node(parent)
 	db_func.save()
 
 	i = 0
@@ -172,6 +170,17 @@ def _store_function(node, parent=None):
 
 	return db_func
 
+def _store_record(node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		return models.Function.objects.get(namespace = db_ns, name = node.name)
+	except ObjectDoesNotExist:
+		pass
+
+	db_record = models.Record()
+	_store_props(db_record, node, (ast.Node, ast.Registered, ast.Compound))
+	return db_record
+
 def _store_node(node, db_ns):
 	if isinstance(node, ast.Enum):
 		return _store_enum (node)
@@ -180,11 +189,16 @@ def _store_node(node, db_ns):
 	if isinstance(node, ast.Alias):
 		return _store_alias (node)
 	if isinstance(node, ast.ErrorQuarkFunction):
-		pass
+		return _store_function (node, is_error_quark=True)
 	if isinstance(node, ast.Function):
 		return _store_function (node)
+#	if isinstance(node, ast.Record):
+#		#return _store_record (node)
+#		pass
 
 def _store_namespace (ns):
+	if ns is None:
+		return None
 	try:
 		db_ns = models.Namespace.objects.get(name = ns.name, version = ns.version)
 		return db_ns
