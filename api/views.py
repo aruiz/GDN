@@ -17,6 +17,8 @@ def _store_props(db_obj, ast_obj, ast_classes):
 	""" Utility to map storage and ast properties """
 	for ast_class in ast_classes:
 		for prop in models.PROPERTY_MAPPINS[ast_class]:
+			if not hasattr(ast_obj, prop):
+				continue
 			if getattr(ast_obj, prop) == None:
 				continue
 			setattr(db_obj, prop, getattr(ast_obj, prop))
@@ -141,7 +143,7 @@ def _store_param (node):
 	db_param.save()
 	return db_param
 
-def _store_function(node, parent=None, is_error_quark=False):
+def _store_function(node, is_error_quark=False):
 	db_ns = _store_namespace(node.namespace)
 	try:
 		return models.Function.objects.get(namespace = db_ns, c_name = node.name)
@@ -156,10 +158,7 @@ def _store_function(node, parent=None, is_error_quark=False):
 	_store_props (db_func, node, (ast.Node, ast.Callable, ast.Function))
 	db_func.namespace = db_ns
 	db_func.retval = _store_retval (node.retval)
-	db_func.method_of=parent
 	db_func.instance_parameter = -1
-	if parent:
-		method_of = _store_node(parent)
 	db_func.save()
 
 	i = 0
@@ -172,10 +171,44 @@ def _store_function(node, parent=None, is_error_quark=False):
 
 	return db_func
 
+def _store_callback(node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		return models.Callback.objects.get(namespace = db_ns, name = node.name)
+	except ObjectDoesNotExist:
+		pass
+
+	db_cb = models.Callback()
+	_store_props(db_cb, node, (ast.Callable, ast.Node, ast.Callback))
+	db_cb.namespace = db_ns
+	db_cb.retval = _store_retval (node.retval)
+	db_cb.instance_parameter = -1
+	db_cb.save()
+
+	i = 0
+	for param in node.parameters:
+		if param is node.instance_parameter:
+			db_cb.instance_parameter = i
+		db_param = _store_param (param)
+		models.CallbackParameter(callback=db_cb, parameter=db_param, position=i).save()
+		i += 1	
+
+	return db_cb
+
+def _store_field(node):
+	db_field = models.Field()
+	_store_props (db_field, node, (ast.Field, ast.Annotated))
+	db_field.type = _store_type (node.type)
+	#if node.anonymous_node != None:
+	#	db_field.anonymous_node.namespace = node.namespace
+	#	db_field.anonymous_node = _store_node(node.anonymous_node)
+	db_field.save()
+	return db_field
+
 def _store_record(node):
 	db_ns = _store_namespace(node.namespace)
 	try:
-		return models.Function.objects.get(namespace = db_ns, name = node.name)
+		return models.Record.objects.get(namespace = db_ns, name = node.name)
 	except ObjectDoesNotExist:
 		pass
 
@@ -194,12 +227,42 @@ def _store_record(node):
 	for constructor in node.constructors:
 		constructor.namespace = node.namespace
 		db_record.constructors.add(_store_function(constructor))
-#	for field in node.fields:
-#		db_record.fields.add(_store_field())
+	for field in node.fields:
+		if field is None:
+			return
+		field.namespace = node.namespace
+		db_record.fields.add(_store_field(field))
 
 	return db_record
 
-def _store_node(node, db_ns):
+def _store_union(node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		return models.Function.objects.get(namespace = db_ns, name = node.name)
+	except ObjectDoesNotExist:
+		pass
+
+	db_union = models.Union()
+	db_union.namespace = db_ns
+	_store_props(db_union, node, (ast.Node, ast.Registered, ast.Compound))
+	db_union.save()
+
+	for method in node.methods:
+		method.namespace = node.namespace
+		db_union.methods.add(_store_function(method))
+	for static_method in node.static_methods:
+		static_method.namespace = node.namespace
+		db_union.static_methods.add(_store_function(static_method))
+	for constructor in node.constructors:
+		constructor.namespace = node.namespace
+		db_union.constructors.add(_store_function(constructor))
+	for field in node.fields:
+		field.namespace = node.namespace
+		db_union.fields.add(_store_field(field))
+
+	return db_union
+
+def _store_node(node):
 	if isinstance(node, ast.Enum):
 		return _store_enum (node)
 	if isinstance(node, ast.Bitfield):
@@ -212,6 +275,10 @@ def _store_node(node, db_ns):
 		return _store_function (node)
 	if isinstance(node, ast.Record):
 		return _store_record (node)
+	if isinstance(node, ast.Callback):
+		return _store_callback(node)
+	if isinstance(node, ast.Union):
+		return _store_union(node)
 
 def _store_namespace (ns):
 	if ns is None:
@@ -241,7 +308,7 @@ def _store_parser (parser):
 	db_ns = _store_namespace (ns)
 
 	for item in ns:
-		_store_node(ns.get (item), db_ns)
+		_store_node(ns.get (item))
 
 def _build_includes_parsers (parser):
 	incs = parser.get_includes()

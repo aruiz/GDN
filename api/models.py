@@ -148,6 +148,7 @@ PROPERTY_MAPPINS = {
 	ast.List:       ('name',),
 	ast.Callable:   ('throws',),
 	ast.Function:   ('is_method','is_constructor','shadowed_by','shadows','moved_to','symbol'),
+	ast.Callback:   ('ctype',),
 	ast.TypeContainer: ('transfer',),
 	ast.Parameter:  ('argname', 'direction', 'allow_none', 'closure_name', 'destroy_name'),
 	ast.Compound:   ('ctype', 'c_symbol_prefix', 'disguised'),
@@ -234,8 +235,8 @@ class Registered(models.Model):
 
 class Callable(Node):
 	throws = models.BooleanField(default=False)
-	retval = models.ForeignKey('Return', related_name='clble_retval')
 	instance_parameter = models.IntegerField ()
+	retval = models.ForeignKey('Return', related_name='clble_retval')
 
 class Function(Callable):
 	is_method      = models.BooleanField(default=False)
@@ -244,7 +245,6 @@ class Function(Callable):
 	shadows        = models.CharField(max_length=CF_MAX_LENGTH)
 	moved_to       = models.CharField(max_length=CF_MAX_LENGTH)
 	symbol         = models.CharField(max_length=CF_MAX_LENGTH)
-	method_of      = models.ForeignKey('Registered', null=True)
 
 class FunctionParameter (models.Model):
 	function = models.ForeignKey('Function')
@@ -390,3 +390,8 @@ class Property(Node):
 
 class Callback(Callable):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH, null=True)
+
+class CallbackParameter (models.Model):
+	callback = models.ForeignKey('Callback')
+	parameter = models.ForeignKey('Parameter')
+	position = models.IntegerField ()
