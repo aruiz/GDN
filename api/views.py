@@ -58,11 +58,6 @@ def _store_type(node):
 		model = models.Type
 		props = (ast.Type,)
 	
-	try:
-		return model.objects.get (ctype=node.ctype)
-	except ObjectDoesNotExist:
-		pass
-
 	db_type = model()
 	_store_props (db_type, node, props)
 
@@ -144,6 +139,8 @@ def _store_param (node):
 	return db_param
 
 def _store_function(node, is_error_quark=False):
+	if node is None:
+		return None
 	db_ns = _store_namespace(node.namespace)
 	try:
 		return models.Function.objects.get(namespace = db_ns, c_name = node.name)
@@ -262,6 +259,49 @@ def _store_union(node):
 
 	return db_union
 
+def _store_class(node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		return models.Class.objects.get(namespace = db_ns, name = node.name)
+	except ObjectDoesNotExist:
+		pass
+
+	db_class = models.Class()
+	db_class.namespace = db_ns
+	_store_props (db_class, node, (ast.Class, ast.Node, ast.Registered))
+	db_class.parent = _store_type (node.parent)
+	db_class.unref_func = _store_function (node.unref_func)
+	db_class.ref_func   = _store_function (node.ref_func)
+	db_class.set_value_func = _store_function (node.set_value_func)
+	db_class.get_value_func = _store_function (node.set_value_func)
+	db_class.glib_type_struct = _store_type (node.glib_type_struct)
+	db_class.save()
+	
+	for method in node.methods:
+		method.namespace = node.namespace
+		db_class.methods.add(_store_function(method))
+	for static_method in node.static_methods:
+		static_method.namespace = node.namespace
+		db_class.static_methods.add(_store_function(static_method))
+	for constructor in node.constructors:
+		constructor.namespace = node.namespace
+		db_class.constructors.add(_store_function(constructor))
+	for field in node.fields:
+		field.namespace = node.namespace
+		db_class.fields.add(_store_field(field))
+	#for signal in node.signals:
+	#	signal.namespace = namespace
+	#	db_class.signals.add(_store_signal(signal))
+	#for interface in node.interfaces:
+	#	interface.namespace = node.namespace
+	#	db_class.interfaces.add(_store_interface(interface))
+	#for prop in node.properties:
+	#	prop.namespace = node.namespace
+	#	db_class.properties.add(_store_property(prop))
+
+		
+
+
 def _store_node(node):
 	if isinstance(node, ast.Enum):
 		return _store_enum (node)
@@ -279,6 +319,15 @@ def _store_node(node):
 		return _store_callback(node)
 	if isinstance(node, ast.Union):
 		return _store_union(node)
+	if isinstance(node, ast.Boxed):
+		pass
+	if isinstance(node, ast.Class):
+		return _store_class(node)
+	if isinstance(node, ast.Interface):
+		pass
+	if isinstance(node, ast.Constant):
+		pass
+	return None
 
 def _store_namespace (ns):
 	if ns is None:

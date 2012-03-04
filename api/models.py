@@ -2,135 +2,6 @@
 from django.db import models
 import giscanner.ast as ast
 
-""" We need to replicate each class of the AST's properties, we use this dict to automate the process. """
-"""
-PROPERTY_MAPPINS = {
-	ast.Namespace:   ('name', 'doc', 'symbol_prefix', 'identifier_prefixes'),
-	ast.Node:        ('name', 'namespaced_name', 'doc'),
-	ast.Parameter:   ('is_out',),
-	ast.Type:        ('is_array', 'c_type'),
-	ast.Value:       ('value',),
-	ast.Callable:    ('c_identifier',),
-	ast.Method:      ('virtual', 'static'),
-	ast.Record:      ('disguised',),
-	ast.TypedNode:   ('name', 'doc', 'is_pointer', 'is_array'),
-	ast.Property:    ('writable', 'construct_only'),
-	ast.Class:       ('is_abstract',)
-}
-
-class Namespace(models.Model):
-	name                = models.CharField(max_length=500)
-	doc                 = models.TextField (null=True, blank=True)
-	symbol_prefix       = models.CharField(max_length=500)
-	identifier_prefixes = models.CharField(max_length=500)
-
-	def __unicode__(self):
-		return self.name
-
-class Node(models.Model):
-	name            = models.CharField(max_length=500)
-	namespaced_name = models.CharField(max_length=500)
-	namespace       = models.ForeignKey('Namespace', null=True, blank=True)
-	doc             = models.TextField (null=True, blank=True)
-
-	def __unicode__(self):
-		return self.name
-
-class TypedNode(models.Model):
-	name       = models.CharField(max_length=500)
-	doc        = models.TextField (null=True, blank=True)
-	tn_type    = models.ForeignKey('Type')
-	is_pointer = models.BooleanField(default=False)
-	is_array   = models.BooleanField(default=False)
-
-	def __unicode__(self):
-		return self.name
-
-class Value(Node):
-	value_of = models.ForeignKey('Enumeration', null=True, blank=True)
-	val      = models.CharField(max_length=500)
-
-class Parameter(TypedNode):
-	is_out       = models.BooleanField(default=False)
-	position     = models.IntegerField()
-	callable_obj = models.ForeignKey('Callable')
-
-class ReturnValue(TypedNode):
-	callable_obj = models.ForeignKey('Callable')
-	def __unicode__(self):
-		c_id = None
-
-		if hasattr(self.callable_obj, 'c_identifier'):
-			c_id = self.callable_obj.c_identifier
-		else:
-			hasattr(self.callable_obj, 'c_type')
-
-		return "%s(...) -> %s" % (c_id, self.tn_type)
-
-class Type(Node):
-	is_array = models.BooleanField(default=False)
-	c_type   = models.CharField(max_length=500)
-
-class BaseType(Type):
-	pass
-
-class VarArgs(Type):
-	pass
-
-class Array(Type):
-	child_type = models.ForeignKey('Type', related_name='array_child_type')
-	
-class Callable(Node):
-	pass
-
-class CallableId(Callable):
-	c_identifier = models.CharField(max_length=500)
-
-class Function(CallableId):
-	pass
-
-class Constructor(CallableId):
-	#TODO: Can a constructor be static? 
-	constructor_of = models.ForeignKey('Class')
-
-class Enumeration(Type):
-	is_bitfield = models.BooleanField(default=False)
-
-class Record(Type):
-	disguised = models.BooleanField(default=False)
-
-class Struct(Record):
-	pass
-
-class Method(CallableId):
-	method_of      = models.ForeignKey('Record', null=True)
-	virtual        = models.BooleanField(default=False)
-	static         = models.BooleanField(default=False)
-
-class Field (TypedNode):
-	field_of = models.ForeignKey('Record')
-
-class Callback(Callable, Type):
-	callback_of = models.ForeignKey('Record', null=True)
-
-class Class(Record):
-	parent_class = models.ForeignKey     ('self',        null=True, blank=True)
-	interfaces   = models.ManyToManyField('Interface',   null=True, blank=True, related_name='class_interfaces')
-	is_abstract  = models.BooleanField(default=False)
-
-class Property(TypedNode):
-	property_of    = models.ForeignKey('Class', null=True)
-	writable       = models.BooleanField(default=False)
-	construct_only = models.BooleanField(default=False)
-
-class Signal(Callable):
-	c_identifier = models.CharField(max_length=500)
-	signal_of = models.ForeignKey('Class', null=True)
-
-class Interface(Class):
-	prerequisites = models.ManyToManyField('Record', null=True, blank=True)
-"""
-
 CF_MAX_LENGTH = 500
 CF_VERSION_MAX_LENGTH = 20
 
@@ -153,6 +24,7 @@ PROPERTY_MAPPINS = {
 	ast.Parameter:  ('argname', 'direction', 'allow_none', 'closure_name', 'destroy_name'),
 	ast.Compound:   ('ctype', 'c_symbol_prefix', 'disguised'),
 	ast.Field:      ('name','readable','writable','private','bits'),
+	ast.Class:      ('ctype', 'c_symbol_prefix', 'fundamental', 'is_abstract'),
 }
 
 class Namespace(models.Model):
@@ -315,6 +187,9 @@ class Field(Annotated):
 	type = models.ForeignKey('Type', null=True)
 	anonymous_node = models.ForeignKey('Callback', null=True)
 
+	def __unicode__ (self):
+		return self.name
+
 class Record(Compound):
 	is_gtype_struct_for = models.ForeignKey('Type', null=True)
 
@@ -339,7 +214,7 @@ class Class(Node, Registered):
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 	fundamental = models.BooleanField(default=False)
 	is_abstract = models.BooleanField(default=False)
-	parent         = models.ForeignKey('Class',    null=True)
+	parent         = models.ForeignKey('Type',    null=True, related_name='cls_parent')
 	unref_func     = models.ForeignKey('Function', null=True, related_name='cls_unref')
 	ref_func       = models.ForeignKey('Function', null=True, related_name='cls_ref')
 	set_value_func = models.ForeignKey('Function', null=True, related_name='cls_set_value')
