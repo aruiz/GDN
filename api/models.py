@@ -26,6 +26,7 @@ PROPERTY_MAPPINS = {
 	ast.Field:      ('name','readable','writable','private','bits'),
 	ast.Class:      ('ctype', 'c_symbol_prefix', 'fundamental', 'is_abstract'),
 	ast.Signal:     ('when', 'no_recurse', 'detailed', 'action', 'no_hooks'),
+	ast.Property:   ('readable', 'writable', 'construct_only', 'transfer', 'construct'),
 }
 
 class Namespace(models.Model):

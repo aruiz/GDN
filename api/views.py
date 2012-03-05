@@ -279,6 +279,18 @@ def _store_signal(node):
 
 	return db_signal
 
+def _store_property(node):
+	db_ns = _store_namespace(node.namespace)
+
+	db_prop = models.Property()
+	db_prop.namespace = db_ns
+	_store_props (db_prop, node, (ast.Node, ast.Property))
+	db_prop.type = _store_type(node.type)
+	db_prop.save()
+
+	return db_prop
+	
+
 def _store_class(node):
 	db_ns = _store_namespace(node.namespace)
 	try:
@@ -315,9 +327,9 @@ def _store_class(node):
 	#for interface in node.interfaces:
 	#	interface.namespace = node.namespace
 	#	db_class.interfaces.add(_store_interface(interface))
-	#for prop in node.properties:
-	#	prop.namespace = node.namespace
-	#	db_class.properties.add(_store_property(prop))
+	for prop in node.properties:
+		prop.namespace = node.namespace
+		db_class.properties.add(_store_property(prop))
 
 	return db_class
 
