@@ -259,6 +259,26 @@ def _store_union(node):
 
 	return db_union
 
+def _store_signal(node):
+	db_ns = _store_namespace(node.namespace)
+
+	db_signal = models.Signal()
+	_store_props(db_cb, node, (ast.Callable, ast.Node, ast.Signal))
+	db_signal.namespace = db_ns
+	db_signal.retval = _store_retval (node.retval)
+	db_signal.instance_parameter = -1
+	db_signal.save()
+
+	i = 0
+	for param in node.parameters:
+		if param is node.instance_parameter:
+			db_signal.instance_parameter = i
+		db_param = _store_param (param)
+		models.SignalParameter(signal=db_signal, parameter=db_param, position=i).save()
+		i += 1	
+
+	return db_signal
+
 def _store_class(node):
 	db_ns = _store_namespace(node.namespace)
 	try:
@@ -289,9 +309,9 @@ def _store_class(node):
 	for field in node.fields:
 		field.namespace = node.namespace
 		db_class.fields.add(_store_field(field))
-	#for signal in node.signals:
-	#	signal.namespace = namespace
-	#	db_class.signals.add(_store_signal(signal))
+	for signal in node.signals:
+		signal.namespace = namespace
+		db_class.signals.add(_store_signal(signal))
 	#for interface in node.interfaces:
 	#	interface.namespace = node.namespace
 	#	db_class.interfaces.add(_store_interface(interface))
@@ -299,8 +319,7 @@ def _store_class(node):
 	#	prop.namespace = node.namespace
 	#	db_class.properties.add(_store_property(prop))
 
-		
-
+	return db_class
 
 def _store_node(node):
 	if isinstance(node, ast.Enum):

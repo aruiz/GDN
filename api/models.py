@@ -25,6 +25,7 @@ PROPERTY_MAPPINS = {
 	ast.Compound:   ('ctype', 'c_symbol_prefix', 'disguised'),
 	ast.Field:      ('name','readable','writable','private','bits'),
 	ast.Class:      ('ctype', 'c_symbol_prefix', 'fundamental', 'is_abstract'),
+	ast.Signal:     ('when', 'no_recurse', 'detailed', 'action', 'no_hooks'),
 }
 
 class Namespace(models.Model):
@@ -208,6 +209,11 @@ class Signal(Callable):
 	detailed = models.BooleanField(default=False)
 	action = models.BooleanField(default=False)
 	no_hooks = models.BooleanField(default=False)
+
+class SignalParameter(models.Model):
+	signal    = models.ForeignKey('Signal')
+	parameter = models.ForeignKey('Parameter')
+	position  = models.IntegerField()
 
 class Class(Node, Registered):
 	ctype = models.CharField(max_length=CF_MAX_LENGTH)
