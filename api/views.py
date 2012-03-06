@@ -289,7 +289,46 @@ def _store_property(node):
 	db_prop.save()
 
 	return db_prop
+
+def _store_interface(node):
+	db_ns = _store_namespace(node.namespace)
+	try:
+		return models.Interface.objects.get(namespace = db_ns, name = node.name)
+	except ObjectDoesNotExist:
+		pass
+
+	db_iface = models.Class()
+	db_iface.namespace = db_ns
+	_store_props (db_iface, node, (ast.Interface, ast.Node, ast.Registered))
+	db_iface.glib_type_struct = _store_type (node.glib_type_struct)
+	db_iface.save()
 	
+	for method in node.methods:
+		method.namespace = node.namespace
+		db_iface.methods.add(_store_function(method))
+	#TODO: virtual methods
+	for static_method in node.static_methods:
+		static_method.namespace = node.namespace
+		db_iface.static_methods.add(_store_function(static_method))
+	for constructor in node.constructors:
+		constructor.namespace = node.namespace
+		db_iface.constructors.add(_store_function(constructor))
+	for signal in node.signals:
+		signal.namespace = namespace
+		db_iface.signals.add(_store_signal(signal))
+	for field in node.fields:
+		field.namespace = node.namespace
+		db_iface.fields.add(_store_field(field))
+	for prop in node.properties:
+		prop.namespace = node.namespace
+		db_iface.properties.add(_store_property(prop))
+
+	for prereq in node.prerequisites:
+		prereq.namespace = node.namespace
+		db_iface.prerequisites.add(_store_type(prereq))
+
+	return db_iface
+
 
 def _store_class(node):
 	db_ns = _store_namespace(node.namespace)
@@ -312,6 +351,7 @@ def _store_class(node):
 	for method in node.methods:
 		method.namespace = node.namespace
 		db_class.methods.add(_store_function(method))
+	#TODO: virtual methods
 	for static_method in node.static_methods:
 		static_method.namespace = node.namespace
 		db_class.static_methods.add(_store_function(static_method))
@@ -324,9 +364,9 @@ def _store_class(node):
 	for signal in node.signals:
 		signal.namespace = namespace
 		db_class.signals.add(_store_signal(signal))
-	#for interface in node.interfaces:
-	#	interface.namespace = node.namespace
-	#	db_class.interfaces.add(_store_interface(interface))
+	for interface in node.interfaces:
+		interface.namespace = node.namespace
+		db_class.interfaces.add(_store_interface(interface))
 	for prop in node.properties:
 		prop.namespace = node.namespace
 		db_class.properties.add(_store_property(prop))

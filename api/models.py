@@ -27,6 +27,7 @@ PROPERTY_MAPPINS = {
 	ast.Class:      ('ctype', 'c_symbol_prefix', 'fundamental', 'is_abstract'),
 	ast.Signal:     ('when', 'no_recurse', 'detailed', 'action', 'no_hooks'),
 	ast.Property:   ('readable', 'writable', 'construct_only', 'transfer', 'construct'),
+	ast.Interface:  ('ctype', 'c_symbol_prefix'),
 }
 
 class Namespace(models.Model):
