@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}API Overview {% endblock %}
+
+{% block content %}
+
+{% for ns in namespaces %}
+<h1>Namespace {{ ns.name }}</h1>
+{% endfor %}
+
+{% endblock %}

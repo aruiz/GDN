@@ -4,8 +4,9 @@ from giscanner.girparser import GIRParser
 import api.models as models
 from django.http import HttpResponse
 from django.db   import IntegrityError
-
+from django.shortcuts import render_to_response
 from storage import GIR_PATH, store_parser
+from django.template import Context
 
 def parse(request):
 	parser = GIRParser()
@@ -15,5 +16,11 @@ def parse(request):
 	return HttpResponse("<html><head><title>GIR to SQL transfusion completed</title></head><body><h1>GIR to SQL transfusion completed</h1></body></html>")
 
 def index(request):
-	page = "<h1>GLib Functions</h1><ul>"
-	return HttpResponse(page)
+	namespaces = []
+	for db_ns in models.Namespace.objects.all():
+		ns = {'name':    db_ns.name,
+			  'version': db_ns.version}
+		namespaces.append (ns)
+
+	ctx = Context({'namespaces': namespaces})
+	return render_to_response ('overview.html', ctx)
