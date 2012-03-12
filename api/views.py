@@ -263,7 +263,7 @@ def _store_signal(node):
 	db_ns = _store_namespace(node.namespace)
 
 	db_signal = models.Signal()
-	_store_props(db_cb, node, (ast.Callable, ast.Node, ast.Signal))
+	_store_props(db_signal, node, (ast.Callable, ast.Node, ast.Signal))
 	db_signal.namespace = db_ns
 	db_signal.retval = _store_retval (node.retval)
 	db_signal.instance_parameter = -1
@@ -362,11 +362,11 @@ def _store_class(node):
 		field.namespace = node.namespace
 		db_class.fields.add(_store_field(field))
 	for signal in node.signals:
-		signal.namespace = namespace
+		signal.namespace = node.namespace
 		db_class.signals.add(_store_signal(signal))
 	for interface in node.interfaces:
 		interface.namespace = node.namespace
-		db_class.interfaces.add(_store_interface(interface))
+		db_class.interfaces.add(_store_type(interface))
 	for prop in node.properties:
 		prop.namespace = node.namespace
 		db_class.properties.add(_store_property(prop))

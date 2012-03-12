@@ -222,22 +222,22 @@ class Class(Node, Registered):
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 	fundamental = models.BooleanField(default=False)
 	is_abstract = models.BooleanField(default=False)
-	parent         = models.ForeignKey('Type',    null=True, related_name='cls_parent')
+	parent         = models.ForeignKey('Type',     null=True, related_name='cls_parent')
 	unref_func     = models.ForeignKey('Function', null=True, related_name='cls_unref')
 	ref_func       = models.ForeignKey('Function', null=True, related_name='cls_ref')
 	set_value_func = models.ForeignKey('Function', null=True, related_name='cls_set_value')
 	get_value_func = models.ForeignKey('Function', null=True, related_name='cls_get_value')
 
-	glib_type_struct = models.ForeignKey('Type', null=True)
+	glib_type_struct = models.ForeignKey('Type',   null=True)
 
 	methods         = models.ManyToManyField('Function', related_name='cls_methods')
 	virtual_methos  = models.ManyToManyField('Function', related_name='cls_vmethods')
 	static_methods  = models.ManyToManyField('Function', related_name='cls_smethods')
 	constructors    = models.ManyToManyField('Function', related_name='cls_constructors')
-	signals         = models.ManyToManyField('Signal', related_name='cls_signals')
-	interfaces      = models.ManyToManyField('Interface', related_name='cls_ifaces')
+	signals         = models.ManyToManyField('Signal',   related_name='cls_signals')
+	interfaces      = models.ManyToManyField('Type',     related_name='cls_ifaces')
 
-	fields          = models.ManyToManyField('Field', related_name='cls_fields')
+	fields          = models.ManyToManyField('Field',    related_name='cls_fields')
 	properties      = models.ManyToManyField('Property', related_name='cls_props')
 	#parent_chain = []
 
