@@ -306,7 +306,9 @@ def _store_interface(node):
 	for method in node.methods:
 		method.namespace = node.namespace
 		db_iface.methods.add(_store_function(method))
-	#TODO: virtual methods
+	for vfunc in node.virtual_methods:
+		vfunc.namespace = node.namespace
+		db_iface.virtual_methods.add(_store_function(vfunc))
 	for static_method in node.static_methods:
 		static_method.namespace = node.namespace
 		db_iface.static_methods.add(_store_function(static_method))
@@ -351,7 +353,9 @@ def _store_class(node):
 	for method in node.methods:
 		method.namespace = node.namespace
 		db_class.methods.add(_store_function(method))
-	#TODO: virtual methods
+	for vfunc in node.virtual_methods:
+		vfunc.namespace = node.namespace
+		db_class.virtual_methods.add(_store_function(vfunc))
 	for static_method in node.static_methods:
 		static_method.namespace = node.namespace
 		db_class.static_methods.add(_store_function(static_method))

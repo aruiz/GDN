@@ -231,7 +231,7 @@ class Class(Node, Registered):
 	glib_type_struct = models.ForeignKey('Type',   null=True)
 
 	methods         = models.ManyToManyField('Function', related_name='cls_methods')
-	virtual_methos  = models.ManyToManyField('Function', related_name='cls_vmethods')
+	virtual_methods = models.ManyToManyField('Function', related_name='cls_vmethods')
 	static_methods  = models.ManyToManyField('Function', related_name='cls_smethods')
 	constructors    = models.ManyToManyField('Function', related_name='cls_constructors')
 	signals         = models.ManyToManyField('Signal',   related_name='cls_signals')
@@ -246,7 +246,7 @@ class Interface(Node, Registered):
 	c_symbol_prefix = models.CharField(max_length=CF_MAX_LENGTH)
 
 	methods         = models.ManyToManyField('Function', related_name='iface_methods')
-	virtual_methos  = models.ManyToManyField('Function', related_name='iface_vmethods')
+	virtual_methods = models.ManyToManyField('Function', related_name='iface_vmethods')
 	static_methods  = models.ManyToManyField('Function', related_name='iface_smethods')
 	constructors    = models.ManyToManyField('Function', related_name='iface_constructors')
 	signals         = models.ManyToManyField('Signal', related_name='iface_signals')
