@@ -5,7 +5,15 @@
 {% block content %}
 
 {% for ns in namespaces %}
-<h1>Namespace {{ ns.name }}</h1>
+<h1>Namespace {{ ns.name }}-{{ ns.version }}</h1>
+  {% if ns.classes %}
+    <h2>Classes</h2>
+    <ul>
+      {% for class in ns.classes %}
+        <li>{{ class.name }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 {% endfor %}
 
 {% endblock %}

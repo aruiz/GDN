@@ -19,8 +19,20 @@ def index(request):
 	namespaces = []
 	for db_ns in models.Namespace.objects.all():
 		ns = {'name':    db_ns.name,
-			  'version': db_ns.version}
+			  'version': db_ns.version,
+			  'classes': False,
+			  ''}
 		namespaces.append (ns)
+
+		classes = models.Class.objects.filter (namespace = db_ns)
+		for db_class in classes:
+			klass = {'name': db_class.gtype_name}
+
+			if not ns['classes']:
+				ns['classes'] = []
+			ns['classes'].append (klass)
 
 	ctx = Context({'namespaces': namespaces})
 	return render_to_response ('overview.html', ctx)
+
+def class
