@@ -21,7 +21,7 @@ def index(request):
 		ns = {'name':    db_ns.name,
 			  'version': db_ns.version,
 			  'classes': False,
-			  ''}
+			  }
 		namespaces.append (ns)
 
 		classes = models.Class.objects.filter (namespace = db_ns)
@@ -35,4 +35,3 @@ def index(request):
 	ctx = Context({'namespaces': namespaces})
 	return render_to_response ('overview.html', ctx)
 
-def class
