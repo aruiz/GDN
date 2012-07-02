@@ -100,8 +100,11 @@ class Node(Annotated):
 	foreign = models.BooleanField(default=False)
 	#TODO
 	#file_positions = set()
+
+	class Meta:
+		ordering=('namespace', 'name')
 	def __unicode__ (self):
-		return self.name
+		return '%s.%s' % (self.namespace, self.name)
 
 class Registered(models.Model):
 	gtype_name = models.CharField (max_length = CF_MAX_LENGTH)

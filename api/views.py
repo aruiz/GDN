@@ -8,13 +8,6 @@ from django.shortcuts import render_to_response
 from storage import GIR_PATH, store_parser
 from django.template import Context
 
-def parse(request):
-	parser = GIRParser()
-	parser.parse(GIR_PATH % "Gtk-3.0")
-	store_parser(parser)
-
-	return HttpResponse("<html><head><title>GIR to SQL transfusion completed</title></head><body><h1>GIR to SQL transfusion completed</h1></body></html>")
-
 def index(request):
 	namespaces = []
 	for db_ns in models.Namespace.objects.all():
