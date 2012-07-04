@@ -8,6 +8,7 @@ admin.site.register(Namespace,  NsAdmin)
 
 class NodeAdmin(admin.ModelAdmin):
 	list_display = ('gi_name', 'c_name', 'namespace', 'foreign')
+	list_filter = ('namespace', )
 admin.site.register(Node,  NodeAdmin)
 admin.site.register(Record,  NodeAdmin)
 
@@ -44,6 +45,7 @@ admin.site.register(Parameter, TypeContainerAdmin)
 
 class FunctionAdmin(admin.ModelAdmin):
 	list_display = ('c_name', 'gi_name', 'instance_parameter')
+	list_filter = ('namespace', 'cls_methods')
 admin.site.register(Function, FunctionAdmin)
 
 class FunctionParameterAdmin(admin.ModelAdmin):
@@ -52,4 +54,5 @@ admin.site.register(FunctionParameter, FunctionParameterAdmin)
 
 class ClassAdmin(admin.ModelAdmin):
 	list_display = ('c_name', 'gi_name')
+	list_filter = ('namespace', )
 admin.site.register(Class, ClassAdmin)

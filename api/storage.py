@@ -3,6 +3,7 @@ from giscanner.girparser import GIRParser
 import giscanner.ast as ast
 import api.models as models
 from django.db   import IntegrityError
+import os
 
 GIR_PATH="/usr/share/gir-1.0/%s.gir"
 
@@ -425,9 +426,12 @@ def _build_includes_parsers (parser):
 		if _ns_exists (inc):
 			continue
 		path = GIR_PATH % str(inc)
-		p = GIRParser()
-		p.parse(path)
-		store_parser (p)
+		if os.path.exists(path):
+			p = GIRParser()
+			p.parse(path)
+			store_parser (p)
+		else:
+			print "WARNING: GIR not found: %s" % inc
 
 def store_parser (parser):
 	_build_includes_parsers (parser)
